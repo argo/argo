@@ -1,4 +1,4 @@
-var platform = require('./platform');
+var platform = require('./plumbing/platform');
 var DOMParser = require('xmldom').DOMParser;
 var CORS = require('./cors');
 var Matcher = require('./matcher');
@@ -33,9 +33,6 @@ proxy.route('/weather/forecasts', function(handler) {
     });
     
     env.target.response.on('end', function() {
-      /*
-
-       */
       var doc = new DOMParser().parseFromString(body);
       var response = JSON.stringify({
         location: { lat: 42.33, long: -83.05, name: "Detroit, MI" },
@@ -61,6 +58,7 @@ proxy.route('/weather/forecasts', function(handler) {
         ]
       });
 
+      console.log(env.response.headers);
       env.response.setHeader('Content-Length', response.length); 
       env.response.end(response);
     });

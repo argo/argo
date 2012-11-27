@@ -89,6 +89,10 @@ Platform.prototype._target = function(env, next) {
     // TODO: Support non-GET options.
     
     http.get(env.target.url, function(res) {
+      console.log(res._headerNames);
+      for (var key in res.headers) {
+        env.response.setHeader(capitalize(key), res.headers[key]);
+      }
       env.target.response = res;
       //env.target.response.pipe(env.response);
       if (next) {
@@ -100,5 +104,12 @@ Platform.prototype._target = function(env, next) {
     env.response.end('Not Found');
   }
 };
+
+function capitalize(str) {
+  return str.split('-').map(function(string) {
+    if (string === 'p3p') return 'P3P';
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  }).join('-');
+}
 
 module.exports = new Platform();
