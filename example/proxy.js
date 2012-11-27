@@ -1,4 +1,4 @@
-var platform = require('./plumbing/platform');
+var platform = require('../');
 var DOMParser = require('xmldom').DOMParser;
 var CORS = require('./cors');
 

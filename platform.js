@@ -1,10 +1,13 @@
 var http = require('http');
 var Builder = require('./builder');
+var runner = require('./runner');
 
 var Platform = function() {
   this._router = {};
   this.builder = null;
 };
+
+Platform.prototype.run = runner.start;
 
 Platform.prototype.init = function(config) {
  var that = this;

@@ -2,17 +2,19 @@
   "name": "argo",
   "version": "0.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "platform.js",
   "private": true,
-  "dependencies": {
-    "xmldom": "~0.1.13"
+  "directories": {
+    "example": "example"
   },
-  "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": "",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/apigee/argo.git"
+  },
   "author": "Kevin Swiber",
-  "license": "MIT"
+  "license": "MIT",
+  "readmeFilename": "README.md"
 }
