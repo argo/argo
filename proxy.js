@@ -33,32 +33,53 @@ proxy.route('/weather/forecasts', function(handler) {
     });
     
     env.target.response.on('end', function() {
-      var doc = new DOMParser().parseFromString(body);
-      var response = JSON.stringify({
-        location: { lat: 42.33, long: -83.05, name: "Detroit, MI" },
-        timestamp: "Mon, 26 Nov 2012 1:52 pm EST",
-        temp: 36,
-        text: "Cloudy",
-        "url": "http://weather.yahoo.com/forecast/USMI0229_f.html",
-        "forecast": [
-          {
-            "date": "26 Nov 2012",
-            "day": "Mon",
-            "high": 37,
-            "low": 23,
-            "text": "Mostly Cloudy"
-          },
-          {
-            "date": "27 Nov 2012",
-            "day": "Tue",
-            "high": 35,
-            "low": 27,
-            "text": "Partly Cloudy"
-          }
-        ]
-      });
+      var channel  = new DOMParser().parseFromString(body).documentElement.getElementsByTagName('channel')[0];
+      var geo = 'http://www.w3.org/2003/01/geo/wgs84_pos#';
+      var yweather = 'http://xml.weather.yahoo.com/ns/rss/1.0';
 
-      console.log(env.response.headers);
+      var response = {};
+
+      var lat = channel.getElementsByTagNameNS(geo, 'lat').item(0).firstChild;
+      var long = channel.getElementsByTagNameNS(geo, 'long').item(0).firstChild;
+      var location = channel.getElementsByTagNameNS(yweather, 'location').item(0);
+      var city = location.getAttribute('city');
+      var region = location.getAttribute('region');
+
+      response.location = {
+        lat: lat.nodeValue,
+        long: long.nodeValue,
+        name: city + ', ' + region
+      };
+
+      var condition = channel.getElementsByTagNameNS(yweather, 'condition').item(0);
+      var date = condition.getAttribute('date');
+      var temp = condition.getAttribute('temp');
+      var text = condition.getAttribute('text');
+
+      response.timestamp = date;
+      response.temp = temp;
+      response.text = text;
+
+      var link = channel.getElementsByTagName('link').item(0).firstChild.nodeValue;
+      response.url = link;
+
+      response.forecasts = [];
+
+      var forecasts = channel.getElementsByTagNameNS(yweather, 'forecast');
+
+      for(var i = 0, len = forecasts.length; i < len; i++) {
+        var forecast = forecasts.item(i);
+        response.forecasts.push({
+          date: forecast.getAttribute('date'),
+          day: forecast.getAttribute('day'),
+          high: forecast.getAttribute('high'),
+          low: forecast.getAttribute('low'),
+          text: forecast.getAttribute('text')
+        });
+      }
+
+      response = JSON.stringify(response);
+
       env.response.setHeader('Content-Length', response.length); 
       env.response.end(response);
     });
