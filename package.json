@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "description": "",
   "main": "server.js",
+  "private": true,
   "dependencies": {
     "xmldom": "~0.1.13"
   },
