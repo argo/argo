@@ -1,11 +1,9 @@
 var platform = require('./plumbing/platform');
 var DOMParser = require('xmldom').DOMParser;
 var CORS = require('./cors');
-var Matcher = require('./matcher');
 
 var proxy = platform.init(function(gateway) {
   gateway.use(CORS);
-  gateway.use(Matcher);
 });
 
 proxy.route('/weather/forecasts', function(handler) {
