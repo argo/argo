@@ -1,12 +1,6 @@
-var platform = require('../');
 var DOMParser = require('xmldom').DOMParser;
-var cors = require('./cors');
 
-var proxy = platform.init(function(builder) {
-  builder.use(cors);
-});
-
-proxy.route('/weather/forecasts', function(handlers) {
+module.exports = function(handlers) {
   handlers.add('request', function(env, next) {
     var regex = /\/([0-9]+)\.json/;
     var result = regex.exec(env.proxy.pathSuffix);
@@ -18,22 +12,12 @@ proxy.route('/weather/forecasts', function(handlers) {
   });
 
   handlers.add('response', function(env, next) {
-    var body = '';
-    env.target.response.on('data', function(chunk) {
-      body += chunk;
-    });
-    
-    env.target.response.on('end', function() {
-      var json = xmlToJson(body);
-      response = JSON.stringify(json);
-
-      env.response.setHeader('Content-Length', response.length); 
-      env.response.end(response);
-    });
+    var json = xmlToJson(env.response.body);
+    env.response.body = JSON.stringify(json);
 
     next(env);
   });
-});
+};
 
 function xmlToJson(xml) {
   var channel  = new DOMParser().parseFromString(xml).documentElement.getElementsByTagName('channel')[0];
@@ -83,5 +67,3 @@ function xmlToJson(xml) {
 
   return response;
 }
-
-module.exports = proxy;
