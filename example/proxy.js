@@ -6,11 +6,11 @@ var proxy = platform.init(function(gateway) {
   gateway.use(CORS);
 });
 
-proxy.route('/weather/forecasts', function(handler) {
-  console.log('adding forecast handlers');
+proxy.route('/weather/forecasts', function(handlers) {
+  //console.log('adding forecast handlers');
 
-  handler.on('request', function(env, next) {
-    console.log('in route proxy request handler');
+  handlers.add('request', function(env, next) {
+    //console.log('in route proxy request handler');
 
     var regex = /\/([0-9]+)\.json/;
     var result = regex.exec(env.proxy.pathSuffix);
@@ -22,8 +22,8 @@ proxy.route('/weather/forecasts', function(handler) {
     next(env);
   });
 
-  handler.on('response', function(env, next) {
-    console.log('in route proxy response handler');
+  handlers.add('response', function(env, next) {
+    //console.log('in route proxy response handler');
 
     var body = '';
     env.target.response.on('data', function(chunk) {

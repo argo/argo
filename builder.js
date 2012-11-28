@@ -2,9 +2,18 @@ function EventHandler(eventHandlerMap) {
   this.eventHandlerMap = eventHandlerMap;
 };
 
-EventHandler.prototype.on = function(event, handler) {
+EventHandler.prototype.add = function(event, options, handler) {
+  if (typeof options === 'function') {
+    handler = options;
+    options = null;
+  }
+
   if (this.eventHandlerMap[event]) {
-    this.eventHandlerMap[event].push(handler);
+    options = options || { hoist: false };
+
+    var operation = options.hoist ? 'unshift' : 'push';
+    var m = this.eventHandlerMap[event];
+    m[operation].call(m, handler);
   }
 };
 
@@ -13,7 +22,7 @@ function LinkedList() {
   this._head = null;
 };
 
-LinkedList.prototype.push = function(item) {
+LinkedList.prototype.add = function(item) {
   var lastItem = this._items[this._items.length - 1];
 
   var obj = { value: item, next: null };
@@ -70,7 +79,7 @@ Builder.prototype.build = function() {
       };
     };
 
-    pipeline.push(middlewareFunc);
+    pipeline.add(middlewareFunc);
   });
 
   /* For Array Pipeline */

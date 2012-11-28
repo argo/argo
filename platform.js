@@ -15,10 +15,10 @@ Platform.prototype.init = function(config) {
  this.builder = new Builder();
  config.apply(this, [this.builder]);
 
- this.builder.use(function(handler) { 
+ this.builder.use(function(handlers) { 
    console.log('adding router handlers');
 
-   that._route(that._router, handler);
+   that._route(that._router, handlers);
  });
 
  this.builder.run(that._target);
@@ -30,23 +30,23 @@ Platform.prototype.call = function(env) {
   return this.builder.call(env);
 }
 
-Platform.prototype.route = function(path, handler) {
-  this._router[path] = handler;
+Platform.prototype.route = function(path, handlers) {
+  this._router[path] = handlers;
 };
 
-Platform.prototype._route = function(router, handler) {
+Platform.prototype._route = function(router, handlers) {
   /* Hacky.  Cache this stuff. */
 
-  handler.on('request', function(env, next) {
-    console.log('in route - request');
+  handlers.add('request', function(env, next) {
+    console.log('request routing...');
     for (var key in router) {
       if (env.proxy.pathSuffix.search(key) != -1) {
-        var handler = function() {
+        var handlers = function() {
           this.request = null;
           this.response = null;
         }
         
-        handler.on = function(name, cb) {
+        handlers.add = function(name, cb) {
           if (name === 'request') {
             this.request = cb;
           } else if (name === 'response') {
@@ -54,23 +54,23 @@ Platform.prototype._route = function(router, handler) {
           }
         }
 
-        router[key](handler);
+        router[key](handlers);
         
-        handler.request(env, next);
+        handlers.request(env, next);
       }
     }
   });
 
-  handler.on('response', function(env, next) {
-    console.log('in route - response');
+  handlers.add('response', { hoist: true }, function(env, next) {
+    console.log('response routing...');
     for (var key in router) {
       if (env.proxy.pathSuffix.search(key) != -1) {
-        var handler = function() {
+        var handlers = function() {
           this.request = null;
           this.response = null;
         }
         
-        handler.on = function(name, cb) {
+        handlers.add = function(name, cb) {
           if (name === 'request') {
             this.request = cb;
           } else if (name === 'response') {
@@ -78,21 +78,20 @@ Platform.prototype._route = function(router, handler) {
           }
         }
 
-        router[key](handler);
+        router[key](handlers);
         
-        handler.response(env, next);
+        handlers.response(env, next);
       }
     }
   });
 };
 
 Platform.prototype._target = function(env, next) {
-  console.log('target:', env.target);
+  console.log('executing target');
   if (env.target && env.target.url) {
     // TODO: Support non-GET options.
     
     http.get(env.target.url, function(res) {
-      console.log(res._headerNames);
       for (var key in res.headers) {
         env.response.setHeader(capitalize(key), res.headers[key]);
       }
