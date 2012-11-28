@@ -4,16 +4,22 @@ var runner = require('./runner');
 
 var Platform = function() {
   this._router = {};
-  this.builder = null;
+  this.builder = new Builder();
 };
 
-Platform.prototype.run = runner.start;
+Platform.prototype.listen = function(port) {
+  this._build();
+  runner.listen(this, port);
+  return this;
+};
 
-Platform.prototype.init = function(config) {
+Platform.prototype.use = function(middleware) {
+  this.builder.use(middleware);
+  return this;
+};
+
+Platform.prototype._build = function() {
   var that = this;
-
-  this.builder = new Builder();
-  config.call(this, this.builder);
 
   this.builder.use(function(handlers) { 
    console.log('adding router handlers');
@@ -62,8 +68,6 @@ Platform.prototype.init = function(config) {
   });
 
   this.builder.run(that._target);
-
-  return this;
 };
 
 Platform.prototype.call = function(env) {
@@ -72,6 +76,7 @@ Platform.prototype.call = function(env) {
 
 Platform.prototype.route = function(path, handlers) {
   this._router[path] = handlers;
+  return this;
 };
 
 Platform.prototype._route = function(router, handlers) {
@@ -154,4 +159,4 @@ function capitalize(str) {
   }).join('-');
 }
 
-module.exports = new Platform();
+module.exports = function() { return new Platform() };

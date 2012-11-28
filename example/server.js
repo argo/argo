@@ -1,10 +1,9 @@
-var platform = require('../');
 var cors = require('./cors');
+var platform = require('../');
 
-var proxy = platform.init(function(builder) {
-  builder.use(cors);
-});
+var proxy = platform();
 
-proxy.route('/weather/forecasts', require('./forecasts'));
-
-platform.run(proxy);
+proxy
+  .use(cors)
+  .route('/weather/forecasts', require('./forecasts'))
+  .listen(3000);
