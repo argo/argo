@@ -10,20 +10,60 @@ var Platform = function() {
 Platform.prototype.run = runner.start;
 
 Platform.prototype.init = function(config) {
- var that = this;
+  var that = this;
 
- this.builder = new Builder();
- config.apply(this, [this.builder]);
+  this.builder = new Builder();
+  config.call(this, this.builder);
 
- this.builder.use(function(handlers) { 
+  this.builder.use(function(handlers) { 
    console.log('adding router handlers');
-
    that._route(that._router, handlers);
- });
+  });
 
- this.builder.run(that._target);
+  // spooler
+  this.builder.use(function(handlers) {
+    console.log('adding spooler handlers');
+    handlers.add('request', { hoist: true }, function(env, next) {
+      console.log('executing request spooler');
+      var body = '';
+      env.request.on('data', function(chunk) {
+        body += chunk;
+      });
 
- return this;
+      env.request.on('end', function() {
+        env.request.body = body;
+        next(env);
+      });
+    });
+
+    handlers.add('response', { hoist: true }, function(env, next) {
+      console.log('executing response spooler');
+      var body = '';
+      env.target.response.on('data', function(chunk) {
+        body += chunk;
+      });
+
+      env.target.response.on('end', function() {
+        env.response.body = body;
+        next(env);
+      });
+    });
+  });
+
+  // response ender
+  this.builder.use(function(handlers) {
+    console.log('adding response ender');
+    handlers.add('response', function(env, next) {
+      console.log('executing response ender');
+      var body = env.response.body;
+      env.response.setHeader('Content-Length', body.length); 
+      env.response.end(body);
+    });
+  });
+
+  this.builder.run(that._target);
+
+  return this;
 };
 
 Platform.prototype.call = function(env) {
