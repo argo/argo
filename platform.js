@@ -8,7 +8,6 @@ var Platform = function() {
 };
 
 Platform.prototype.listen = function(port) {
-  //this._build();
   runner.listen(this, port);
   return this;
 };

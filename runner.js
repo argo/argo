@@ -7,7 +7,7 @@ Runner.prototype.listen = function(platform, port) {
     req.queryParams = { };
     var env = { request: req, response: res, target: {}, proxy: { pathSuffix: req.url } };
     app(env);
-  }).listen((process.env.PORT || port) || 3000);
+  }).listen(port);
 };
 
 module.exports = new Runner();
