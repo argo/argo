@@ -8,7 +8,7 @@ var Platform = function() {
 };
 
 Platform.prototype.listen = function(port) {
-  this._build();
+  //this._build();
   runner.listen(this, port);
   return this;
 };
@@ -18,7 +18,7 @@ Platform.prototype.use = function(middleware) {
   return this;
 };
 
-Platform.prototype._build = function() {
+Platform.prototype.build = function() {
   var that = this;
 
   this.builder.use(function(handlers) { 
@@ -68,6 +68,8 @@ Platform.prototype._build = function() {
   });
 
   this.builder.run(that._target);
+
+  return this.builder.build();
 };
 
 Platform.prototype.call = function(env) {
