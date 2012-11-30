@@ -2,7 +2,7 @@
   "name": "argo",
   "version": "0.0.0",
   "description": "",
-  "main": "platform.js",
+  "main": "argo.js",
   "private": true,
   "directories": {
     "example": "example"

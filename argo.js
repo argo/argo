@@ -2,22 +2,22 @@ var http = require('http');
 var Builder = require('./builder');
 var runner = require('./runner');
 
-var Platform = function() {
+var Argo = function() {
   this._router = {};
   this.builder = new Builder();
 };
 
-Platform.prototype.listen = function(port) {
+Argo.prototype.listen = function(port) {
   runner.listen(this, port);
   return this;
 };
 
-Platform.prototype.use = function(middleware) {
+Argo.prototype.use = function(middleware) {
   this.builder.use(middleware);
   return this;
 };
 
-Platform.prototype.build = function() {
+Argo.prototype.build = function() {
   var that = this;
 
   this.builder.use(function(handlers) { 
@@ -71,16 +71,16 @@ Platform.prototype.build = function() {
   return this.builder.build();
 };
 
-Platform.prototype.call = function(env) {
+Argo.prototype.call = function(env) {
   return this.builder.call(env);
 }
 
-Platform.prototype.route = function(path, handlers) {
+Argo.prototype.route = function(path, handlers) {
   this._router[path] = handlers;
   return this;
 };
 
-Platform.prototype._route = function(router, handlers) {
+Argo.prototype._route = function(router, handlers) {
   /* Hacky.  Cache this stuff. */
 
   handlers.add('request', function(env, next) {
@@ -132,7 +132,7 @@ Platform.prototype._route = function(router, handlers) {
   });
 };
 
-Platform.prototype._target = function(env, next) {
+Argo.prototype._target = function(env, next) {
   console.log('executing target');
   if (env.target && env.target.url) {
     // TODO: Support non-GET options.
@@ -160,4 +160,4 @@ function capitalize(str) {
   }).join('-');
 }
 
-module.exports = function() { return new Platform() };
+module.exports = function() { return new Argo() };

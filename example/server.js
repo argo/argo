@@ -1,7 +1,7 @@
 var cors = require('./cors');
-var platform = require('../');
+var argo = require('../');
 
-var proxy = platform();
+var proxy = argo();
 
 proxy
   .use(cors)
