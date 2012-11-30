@@ -33,8 +33,8 @@ function xmlToJson(xml) {
   var region = location.getAttribute('region');
 
   response.location = {
-    lat: lat.nodeValue,
-    long: long.nodeValue,
+    lat: +(lat.nodeValue),
+    long: +(long.nodeValue),
     name: city + ', ' + region
   };
 
@@ -48,7 +48,8 @@ function xmlToJson(xml) {
   response.text = text;
 
   var link = channel.getElementsByTagName('link').item(0).firstChild.nodeValue;
-  response.url = link;
+  var urls = link.split('*');
+  response.url = urls[urls.length - 1];
 
   response.forecasts = [];
 

@@ -1,5 +1,5 @@
-var cors = require('./cors');
 var argo = require('../');
+var cors = require('./cors');
 
 var proxy = argo();
 
