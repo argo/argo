@@ -1,6 +1,6 @@
-module.exports = function(handlers) {
+module.exports = function(addHandler) {
   console.log('adding cors handlers');
-  handlers.add('response', function(env, next) {
+  addHandler('response', function(env, next) {
     console.log('executing cors response handler');
     env.response.setHeader('Access-Control-Allow-Origin', '*');
 

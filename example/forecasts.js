@@ -1,7 +1,7 @@
 var DOMParser = require('xmldom').DOMParser;
 
-module.exports = function(handlers) {
-  handlers.add('request', function(env, next) {
+module.exports = function(addHandler) {
+  addHandler('request', function(env, next) {
     var regex = /\/([0-9]+)\.json/;
     var result = regex.exec(env.proxy.pathSuffix);
 
@@ -11,7 +11,7 @@ module.exports = function(handlers) {
     next(env);
   });
 
-  handlers.add('response', function(env, next) {
+  addHandler('response', function(env, next) {
     var json = xmlToJson(env.response.body);
     env.response.body = JSON.stringify(json);
 

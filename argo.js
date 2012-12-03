@@ -26,9 +26,9 @@ Argo.prototype.build = function() {
   });
 
   // spooler
-  this.builder.use(function(handlers) {
+  this.builder.use(function(handle) {
     console.log('adding spooler handlers');
-    handlers.add('request', { hoist: true }, function(env, next) {
+    handle('request', { hoist: true }, function(env, next) {
       console.log('executing request spooler');
       var body = '';
       env.request.on('data', function(chunk) {
@@ -41,7 +41,7 @@ Argo.prototype.build = function() {
       });
     });
 
-    handlers.add('response', { hoist: true }, function(env, next) {
+    handle('response', { hoist: true }, function(env, next) {
       console.log('executing response spooler');
       var body = '';
       env.target.response.on('data', function(chunk) {
@@ -56,9 +56,9 @@ Argo.prototype.build = function() {
   });
 
   // response ender
-  this.builder.use(function(handlers) {
+  this.builder.use(function(handle) {
     console.log('adding response ender');
-    handlers.add('response', function(env, next) {
+    handle('response', function(env, next) {
       console.log('executing response ender');
       var body = env.response.body;
       env.response.setHeader('Content-Length', body.length); 
@@ -80,51 +80,51 @@ Argo.prototype.route = function(path, handlers) {
   return this;
 };
 
-Argo.prototype._route = function(router, handlers) {
+Argo.prototype._route = function(router, handle) {
   /* Hacky.  Cache this stuff. */
 
-  handlers.add('request', function(env, next) {
+  handle('request', function(env, next) {
     console.log('request routing...');
     for (var key in router) {
       if (env.proxy.pathSuffix.search(key) != -1) {
-        var handlers = function() {
-          this.request = null;
-          this.response = null;
+        var handlers = {
+          request: null,
+          response: null
         }
         
         handlers.add = function(name, cb) {
           if (name === 'request') {
-            this.request = cb;
+            handlers.request = cb;
           } else if (name === 'response') {
-            this.response = cb;
+            handlers.response = cb;
           }
         }
 
-        router[key](handlers);
+        router[key](handlers.add);
         
         handlers.request(env, next);
       }
     }
   });
 
-  handlers.add('response', { hoist: true }, function(env, next) {
+  handle('response', { hoist: true }, function(env, next) {
     console.log('response routing...');
     for (var key in router) {
       if (env.proxy.pathSuffix.search(key) != -1) {
-        var handlers = function() {
-          this.request = null;
-          this.response = null;
+        var handlers = {
+          request: null,
+          response: null
         }
         
         handlers.add = function(name, cb) {
           if (name === 'request') {
-            this.request = cb;
+            handlers.request = cb;
           } else if (name === 'response') {
-            this.response = cb;
+            handlers.response = cb;
           }
         }
 
-        router[key](handlers);
+        router[key](handlers.add);
         
         handlers.response(env, next);
       }
