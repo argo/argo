@@ -2,18 +2,22 @@ var DOMParser = require('xmldom').DOMParser;
 
 module.exports = function(addHandler) {
   addHandler('request', function(env, next) {
-    var regex = /\/([0-9]+)\.json/;
-    var result = regex.exec(env.proxy.pathSuffix);
+    env.trace('forecast request', function() {
+      var regex = /\/([0-9]+)\.json/;
+      var result = regex.exec(env.proxy.pathSuffix);
 
-    var woeid = result ? result[1] : '2467861' /* Palo Alto, CA */;
-    env.target.url = 'http://weather.yahooapis.com/forecastrss?w=' + woeid;
+      var woeid = result ? result[1] : '2467861' /* Palo Alto, CA */;
+      env.target.url = 'http://weather.yahooapis.com/forecastrss?w=' + woeid;
+    });
 
     next(env);
   });
 
   addHandler('response', function(env, next) {
-    var json = xmlToJson(env.response.body);
-    env.response.body = JSON.stringify(json);
+    env.trace('forecast response', function() {
+      var json = xmlToJson(env.response.body);
+      env.response.body = JSON.stringify(json);
+    });
 
     next(env);
   });

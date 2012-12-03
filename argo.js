@@ -21,15 +21,13 @@ Argo.prototype.build = function() {
   var that = this;
 
   this.builder.use(function(handlers) { 
-   console.log('adding router handlers');
    that._route(that._router, handlers);
   });
 
   // spooler
   this.builder.use(function(handle) {
-    console.log('adding spooler handlers');
-    handle('request', { hoist: true }, function(env, next) {
-      console.log('executing request spooler');
+    var name = 'Spooler';
+    handle('request', { name: name, hoist: true }, function(env, next) {
       var body = '';
       env.request.on('data', function(chunk) {
         body += chunk;
@@ -41,8 +39,7 @@ Argo.prototype.build = function() {
       });
     });
 
-    handle('response', { hoist: true }, function(env, next) {
-      console.log('executing response spooler');
+    handle('response', { name: name, hoist: true }, function(env, next) {
       var body = '';
       env.target.response.on('data', function(chunk) {
         body += chunk;
@@ -57,9 +54,7 @@ Argo.prototype.build = function() {
 
   // response ender
   this.builder.use(function(handle) {
-    console.log('adding response ender');
-    handle('response', function(env, next) {
-      console.log('executing response ender');
+    handle('response', { name: 'Response Ender' }, function(env, next) {
       var body = env.response.body;
       env.response.setHeader('Content-Length', body.length); 
       env.response.end(body);
@@ -83,8 +78,7 @@ Argo.prototype.route = function(path, handlers) {
 Argo.prototype._route = function(router, handle) {
   /* Hacky.  Cache this stuff. */
 
-  handle('request', function(env, next) {
-    console.log('request routing...');
+  handle('request', { name: 'Request Routing' }, function(env, next) {
     for (var key in router) {
       if (env.proxy.pathSuffix.search(key) != -1) {
         var handlers = {
@@ -92,7 +86,12 @@ Argo.prototype._route = function(router, handle) {
           response: null
         }
         
-        handlers.add = function(name, cb) {
+        handlers.add = function(name, opts, cb) {
+          if (typeof opts === 'function') {
+            cb = opts;
+            opts = null;
+          }
+
           if (name === 'request') {
             handlers.request = cb;
           } else if (name === 'response') {
@@ -107,8 +106,7 @@ Argo.prototype._route = function(router, handle) {
     }
   });
 
-  handle('response', { hoist: true }, function(env, next) {
-    console.log('response routing...');
+  handle('response', { name: 'Response Routing', hoist: true }, function(env, next) {
     for (var key in router) {
       if (env.proxy.pathSuffix.search(key) != -1) {
         var handlers = {
@@ -116,7 +114,12 @@ Argo.prototype._route = function(router, handle) {
           response: null
         }
         
-        handlers.add = function(name, cb) {
+        handlers.add = function(name, opts, cb) {
+          if (typeof opts === 'function') {
+            cb = opts;
+            opts = null;
+          }
+
           if (name === 'request') {
             handlers.request = cb;
           } else if (name === 'response') {
@@ -133,23 +136,26 @@ Argo.prototype._route = function(router, handle) {
 };
 
 Argo.prototype._target = function(env, next) {
-  console.log('executing target');
   if (env.target && env.target.url) {
     // TODO: Support non-GET options.
-    
-    http.get(env.target.url, function(res) {
-      for (var key in res.headers) {
-        env.response.setHeader(capitalize(key), res.headers[key]);
-      }
-      env.target.response = res;
-      //env.target.response.pipe(env.response);
-      if (next) {
-        next(env);
-      }
+      
+    env.trace('target', function() {
+      http.get(env.target.url, function(res) {
+        for (var key in res.headers) {
+          env.response.setHeader(capitalize(key), res.headers[key]);
+        }
+        env.target.response = res;
+        //env.target.response.pipe(env.response);
+        if (next) {
+          next(env);
+        }
+      });
     });
   } else {
-    env.response.writeHead(404, { 'Content-Type': 'text/plain' });
-    env.response.end('Not Found');
+    env.trace('target', function() {
+      env.response.writeHead(404, { 'Content-Type': 'text/plain' });
+      env.response.end('Not Found');
+    });
   }
 };
 

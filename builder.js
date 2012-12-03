@@ -1,27 +1,4 @@
-function LinkedList() {
-  this._items = [];
-  this._head = null;
-};
-
-LinkedList.prototype.add = function(item) {
-  var lastItem = this._items[this._items.length - 1];
-
-  var obj = { value: item, next: null };
-
-  if (lastItem) {
-    lastItem.next = obj;
-  }
-
-  this._items.push(obj);
-};
-
-LinkedList.prototype.head = function() {
-  return this._items[0];
-}
-
-LinkedList.prototype.length = function() {
-  return this._items.length;
-};
+var LinkedList = require('./linkedList');
 
 function Builder() {
   this._middleware = [];
@@ -34,6 +11,13 @@ Builder.prototype.use = function(middleware) {
 
 Builder.prototype.run = function(app) {
   this._targetApp = app;
+  /*this._targetApp = function() {
+    var start = +Date.now();
+    app.apply(app, arguments);
+    var duration = +Date.now() - start;
+
+    console.log('Duration (target): ' + duration);
+  };*/
 };
 
 Builder.prototype._buildHandler = function(eventHandlerMap) {
@@ -44,10 +28,22 @@ Builder.prototype._buildHandler = function(eventHandlerMap) {
     }
 
     if (eventHandlerMap[event]) {
-      options = options || { hoist: false };
+      options = options || {};
+      options.hoist = options.hoist || false;
+      options.name = options.name || 'Middleware';
 
       var operation = options.hoist ? 'unshift' : 'push';
       var m = eventHandlerMap[event];
+
+      var timedHandler = function() {
+        var start = +Date.now();
+        handler.apply(handler, arguments);
+        var duration = +Date.now() - start;
+
+        console.log('Duration (' + options.name + '): ' + duration);
+      };
+
+      //m[operation].call(m, timedHandler);
       m[operation].call(m, handler);
     }
   };
@@ -60,7 +56,6 @@ Builder.prototype.build = function() {
   };
 
   var handle = this._buildHandler(eventHandlerMap);
-
   this._middleware.forEach(function(middleware) {
     middleware(handle);
   });
@@ -71,33 +66,13 @@ Builder.prototype.build = function() {
   handlers = handlers.slice(0).reverse();
 
   handlers.forEach(function(handler) {
-    var middlewareFunc = function(next) {
+    pipeline.add(function(next) {
       return function(env) {
         handler(env, next);
       };
-    };
-
-    pipeline.add(middlewareFunc);
+    });
   });
 
-  /* For Array Pipeline */
-  /*var app = pipeline.shift();
-  pipeline.forEach(function(middleware) {
-    app = middleware.call(this, app);
-  });*/
-
-  /*
-  var app = this._run;
-  var reversed = this._use.slice(0).reverse();
-  
-  for (var i = 0, len = reversed.length; i < len; i++) {
-    app = reversed[i].call(this, app);
-  }
-
-  return app;
-   */
-
-  
   var node = pipeline.head();
 
   var app = node.value;
