@@ -48,7 +48,7 @@ function xmlToJson(xml) {
   var text = condition.getAttribute('text');
 
   response.timestamp = date;
-  response.temp = temp;
+  response.temp = +temp;
   response.text = text;
 
   var link = channel.getElementsByTagName('link').item(0).firstChild.nodeValue;
@@ -64,8 +64,8 @@ function xmlToJson(xml) {
     response.forecasts.push({
       date: forecast.getAttribute('date'),
       day: forecast.getAttribute('day'),
-      high: forecast.getAttribute('high'),
-      low: forecast.getAttribute('low'),
+      high: +forecast.getAttribute('high'),
+      low: +forecast.getAttribute('low'),
       text: forecast.getAttribute('text')
     });
   }

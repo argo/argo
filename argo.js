@@ -27,7 +27,9 @@ Argo.prototype.build = function() {
   // spooler
   this.builder.use(function(handle) {
     var name = 'Spooler';
-    handle('request', { name: name, hoist: true }, function(env, next) {
+    handle('request', { hoist: true }, function(env, next) {
+      var start = +Date.now();
+
       var body = '';
       env.request.on('data', function(chunk) {
         body += chunk;
@@ -35,11 +37,14 @@ Argo.prototype.build = function() {
 
       env.request.on('end', function() {
         env.request.body = body;
+        console.log(new Date() + ': Duration (request spooler): ' + (+Date.now() - start) + 'ms');
         next(env);
       });
     });
 
-    handle('response', { name: name, hoist: true }, function(env, next) {
+    handle('response', { hoist: true }, function(env, next) {
+      var start = +Date.now();
+
       var body = '';
       env.target.response.on('data', function(chunk) {
         body += chunk;
@@ -47,6 +52,7 @@ Argo.prototype.build = function() {
 
       env.target.response.on('end', function() {
         env.response.body = body;
+        console.log(new Date() + ': Duration (response spooler): ' + (+Date.now() - start) + 'ms');
         next(env);
       });
     });
@@ -54,7 +60,7 @@ Argo.prototype.build = function() {
 
   // response ender
   this.builder.use(function(handle) {
-    handle('response', { name: 'Response Ender' }, function(env, next) {
+    handle('response', function(env, next) {
       var body = env.response.body;
       env.response.setHeader('Content-Length', body.length); 
       env.response.end(body);
@@ -78,7 +84,8 @@ Argo.prototype.route = function(path, handlers) {
 Argo.prototype._route = function(router, handle) {
   /* Hacky.  Cache this stuff. */
 
-  handle('request', { name: 'Request Routing' }, function(env, next) {
+  handle('request', function(env, next) {
+    var start = +Date.now();
     for (var key in router) {
       if (env.proxy.pathSuffix.search(key) != -1) {
         var handlers = {
@@ -100,6 +107,8 @@ Argo.prototype._route = function(router, handle) {
         }
 
         router[key](handlers.add);
+
+        console.log(new Date() + ': Duration (route request): ' + (+Date.now() - start) + 'ms');
         
         handlers.request(env, next);
       }
@@ -107,6 +116,7 @@ Argo.prototype._route = function(router, handle) {
   });
 
   handle('response', { name: 'Response Routing', hoist: true }, function(env, next) {
+    var start = +Date.now();
     for (var key in router) {
       if (env.proxy.pathSuffix.search(key) != -1) {
         var handlers = {
@@ -127,6 +137,7 @@ Argo.prototype._route = function(router, handle) {
           }
         }
 
+        console.log(new Date() + ': Duration (route response): ' + (+Date.now() - start) + 'ms');
         router[key](handlers.add);
         
         handlers.response(env, next);
@@ -142,7 +153,8 @@ Argo.prototype._target = function(env, next) {
     env.trace('target', function() {
       http.get(env.target.url, function(res) {
         for (var key in res.headers) {
-          env.response.setHeader(capitalize(key), res.headers[key]);
+          //env.response.setHeader(capitalize(key), res.headers[key]);
+          env.response.setHeader(key, res.headers[key]);
         }
         env.target.response = res;
         //env.target.response.pipe(env.response);
