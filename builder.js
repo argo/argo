@@ -11,13 +11,6 @@ Builder.prototype.use = function(middleware) {
 
 Builder.prototype.run = function(app) {
   this._targetApp = app;
-  /*this._targetApp = function() {
-    var start = +Date.now();
-    app.apply(app, arguments);
-    var duration = +Date.now() - start;
-
-    console.log('Duration (target): ' + duration);
-  };*/
 };
 
 Builder.prototype._buildHandler = function(eventHandlerMap) {
@@ -30,20 +23,10 @@ Builder.prototype._buildHandler = function(eventHandlerMap) {
     if (eventHandlerMap[event]) {
       options = options || {};
       options.hoist = options.hoist || false;
-      options.name = options.name || 'Middleware';
 
       var operation = options.hoist ? 'unshift' : 'push';
       var m = eventHandlerMap[event];
 
-      var timedHandler = function() {
-        var start = +Date.now();
-        handler.apply(handler, arguments);
-        var duration = +Date.now() - start;
-
-        console.log('Duration (' + options.name + '): ' + duration);
-      };
-
-      //m[operation].call(m, timedHandler);
       m[operation].call(m, handler);
     }
   };

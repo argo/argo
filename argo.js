@@ -26,7 +26,6 @@ Argo.prototype.build = function() {
 
   // spooler
   this.builder.use(function(handle) {
-    var name = 'Spooler';
     handle('request', { hoist: true }, function(env, next) {
       var start = +Date.now();
 
@@ -115,7 +114,7 @@ Argo.prototype._route = function(router, handle) {
     }
   });
 
-  handle('response', { name: 'Response Routing', hoist: true }, function(env, next) {
+  handle('response', { hoist: true }, function(env, next) {
     var start = +Date.now();
     for (var key in router) {
       if (env.proxy.pathSuffix.search(key) != -1) {
