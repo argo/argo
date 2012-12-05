@@ -3,6 +3,7 @@ var cors = require('./cors');
 var tracer = require('../tracer');
 
 var proxy = argo();
+var port = process.env.PORT || 3000;
 
 proxy
   .use(function(addHandler) {
@@ -20,4 +21,6 @@ proxy
       next(env);
     });
   })
-  .listen(process.env.PORT || 3000);
+  .listen(port);
+
+console.log('Listening on http://localhost:' + port);

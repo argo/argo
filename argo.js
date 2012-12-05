@@ -1,4 +1,5 @@
 var http = require('http');
+var url = require('url');
 var Builder = require('./builder');
 var runner = require('./runner');
 
@@ -20,9 +21,18 @@ Argo.prototype.use = function(middleware) {
 Argo.prototype.build = function() {
   var that = this;
 
-  this.builder.use(function(handlers) { 
-   that._route(that._router, handlers);
-  });
+  var hasRoutes = false;
+  for (var prop in that._router) {
+    if (!hasRoutes && that._router.hasOwnProperty(prop)) {
+      hasRoutes = true;
+    }
+  }
+
+  if (hasRoutes) {
+    this.builder.use(function(handlers) { 
+     that._route(that._router, handlers);
+    });
+  }
 
   // spooler
   this.builder.use(function(handle) {
@@ -146,26 +156,49 @@ Argo.prototype._route = function(router, handle) {
 };
 
 Argo.prototype._target = function(env, next) {
+  var start = +Date.now();
+
   if (env.target && env.target.url) {
-    // TODO: Support non-GET options.
-      
-    env.trace('target', function() {
-      http.get(env.target.url, function(res) {
-        for (var key in res.headers) {
-          //env.response.setHeader(capitalize(key), res.headers[key]);
-          env.response.setHeader(key, res.headers[key]);
-        }
-        env.target.response = res;
-        //env.target.response.pipe(env.response);
-        if (next) {
-          next(env);
-        }
-      });
+    var options = {};
+    options.method = env.request.method || 'GET';
+
+    // TODO: Make Agent configurable.
+    options.agent = new http.Agent();
+    options.agent.maxSockets = 1024;
+
+    options.headers = env.request.headers;
+    options.headers['Connection'] = 'keep-alive';
+    options.headers['Host'] = options.hostname;
+
+    var parsed = url.parse(env.target.url);
+    options.hostname = parsed.hostname;
+    options.port = parsed.port || 80;
+    options.path = parsed.path;
+
+    if (parsed.auth) {
+      options.auth = parsed.auth;
+    }
+
+    var req = http.request(options, function(res) {
+      for (var key in res.headers) {
+        //env.response.setHeader(capitalize(key), res.headers[key]);
+        env.response.setHeader(key, res.headers[key]);
+      }
+
+      env.target.response = res;
+
+      if (next) {
+        console.log(new Date() + ': Duration (target): ' + (+Date.now() - start) + 'ms');
+        next(env);
+      }
     });
+
+    req.end();
   } else {
     env.trace('target', function() {
       env.response.writeHead(404, { 'Content-Type': 'text/plain' });
       env.response.end('Not Found');
+      console.log(new Date() + ': Duration (target not found): ' + (+Date.now() - start) + 'ms');
     });
   }
 };
