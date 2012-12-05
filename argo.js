@@ -39,12 +39,26 @@ Argo.prototype.build = function() {
     handle('request', { hoist: true }, function(env, next) {
       var start = +Date.now();
 
-      var body = '';
+      var buf = [];
+      var len = 0;
       env.request.on('data', function(chunk) {
-        body += chunk;
+        buf.push(chunk);
+        len += chunk.length;
       });
 
       env.request.on('end', function() {
+        var body;
+        if (buf.length && Buffer.isBuffer(buf[0])) {
+          body = new Buffer(len);
+          var i = 0;
+          buf.forEach(function(chunk) {
+            chunk.copy(body, i, 0, chunk.length);
+            i += chunk.length;
+          });
+        } else if (buf.length) {
+          body = buf.join('');
+        }
+
         env.request.body = body;
         console.log(new Date() + ': Duration (request spooler): ' + (+Date.now() - start) + 'ms');
         next(env);
@@ -54,12 +68,27 @@ Argo.prototype.build = function() {
     handle('response', { hoist: true }, function(env, next) {
       var start = +Date.now();
 
-      var body = '';
+      var buf = []; 
+      var len = 0;
       env.target.response.on('data', function(chunk) {
-        body += chunk;
+        buf.push(chunk);
+        len += chunk.length;
       });
 
       env.target.response.on('end', function() {
+        var body;
+        if (buf.length && Buffer.isBuffer(buf[0])) {
+          body = new Buffer(len);
+          var i = 0;
+          buf.forEach(function(chunk) {
+            chunk.copy(body, i, 0, chunk.length);
+            i += chunk.length;
+          });
+          body = body.toString('binary');
+        } else if (buf.length) {
+          body = buf.join('');
+        }
+
         env.response.body = body;
         console.log(new Date() + ': Duration (response spooler): ' + (+Date.now() - start) + 'ms');
         next(env);
