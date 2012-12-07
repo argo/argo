@@ -1,5 +1,9 @@
+var uuid = require('node-uuid');
+
 module.exports = function(addHandler) {
   addHandler('request', function(env, next) {
+    env.requestId = uuid.v4();
+    env.sequenceNumber = 0;
     env.printTrace = function(name, message) {
       var request = env.request;
       var response = env.response;
@@ -7,6 +11,8 @@ module.exports = function(addHandler) {
 
       var log = {
         name: name,
+        requestId: env.requestId,
+        sequenceNumber: ++env.sequenceNumber,
         timestamp: new Date(),
         message: message,
         env: {
