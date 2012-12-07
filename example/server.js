@@ -17,7 +17,7 @@ proxy
   .route('/weather/forecasts', require('./forecasts'))
   .use(function(addHandler) {
     addHandler('response', function(env, next) {
-      console.log(new Date() + ': Duration (total): ' + (+Date.now() - env.startTime) + 'ms');
+      env.printTrace('total', 'Duration (total): ' + (+Date.now() - env.startTime) + 'ms');
       next(env);
     });
   })

@@ -60,7 +60,7 @@ Argo.prototype.build = function() {
         }
 
         env.request.body = body;
-        console.log(new Date() + ': Duration (request spooler): ' + (+Date.now() - start) + 'ms');
+        console.log('LOG: ' + new Date() + ': Duration (request spooler): ' + (+Date.now() - start) + 'ms');
         next(env);
       });
     });
@@ -90,7 +90,7 @@ Argo.prototype.build = function() {
         }
 
         env.response.body = body;
-        console.log(new Date() + ': Duration (response spooler): ' + (+Date.now() - start) + 'ms');
+        console.log('LOG: ' + new Date() + ': Duration (response spooler): ' + (+Date.now() - start) + 'ms');
         next(env);
       });
     });
@@ -175,7 +175,7 @@ Argo.prototype._route = function(router, handle) {
           }
         }
 
-        console.log(new Date() + ': Duration (route response): ' + (+Date.now() - start) + 'ms');
+        console.log('LOG: ' + new Date() + ': Duration (route response): ' + (+Date.now() - start) + 'ms');
         router[key](handlers.add);
         
         handlers.response(env, next);
@@ -217,18 +217,16 @@ Argo.prototype._target = function(env, next) {
       env.target.response = res;
 
       if (next) {
-        console.log(new Date() + ': Duration (target): ' + (+Date.now() - start) + 'ms');
+        env.printTrace('target', 'Duration (target): ' + (+Date.now() - start) + 'ms');
         next(env);
       }
     });
 
     req.end();
   } else {
-    env.trace('target', function() {
-      env.response.writeHead(404, { 'Content-Type': 'text/plain' });
-      env.response.end('Not Found');
-      console.log(new Date() + ': Duration (target not found): ' + (+Date.now() - start) + 'ms');
-    });
+    env.response.writeHead(404, { 'Content-Type': 'text/plain' });
+    env.response.end('Not Found');
+    env.printTrace('target', 'Duration (target not found): ' + (+Date.now() - start) + 'ms');
   }
 };
 
