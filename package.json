@@ -16,5 +16,8 @@
   },
   "author": "Kevin Swiber",
   "license": "MIT",
-  "readmeFilename": "README.md"
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "node-uuid": "~1.4.0"
+  }
 }
