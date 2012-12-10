@@ -25,7 +25,7 @@ module.exports = function(addHandler) {
           response: {
             statusCode: response.statusCode,
             url: response.url,
-            headers: response.headers,
+            headers: response._headers,
             body: response.body
           }
         }
