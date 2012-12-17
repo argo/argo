@@ -2,6 +2,7 @@ var http = require('http');
 var url = require('url');
 var Builder = require('./builder');
 var runner = require('./runner');
+var tracer = require('./tracer');
 
 var Argo = function() {
   this._router = {};
@@ -20,6 +21,22 @@ Argo.prototype.use = function(middleware) {
 
 Argo.prototype.build = function() {
   var that = this;
+
+  /*that.builder.use(function(addHandler) {
+    addHandler('request', { hoist: true }, function(env, next) {
+      env.startTime = +Date.now();
+      next(env);
+    });
+  });
+
+  that.builder.use(function(addHandler) {
+    addHandler('response', function(env, next) {
+      var stop = +Date.now();
+      var duration = stop - env.startTime;
+      env.printTrace('total', 'Duration (total): ' + duration + 'ms', { duration: duration });
+      next(env);
+    });
+  });*/
 
   var hasRoutes = false;
   for (var prop in that._router) {
@@ -60,7 +77,8 @@ Argo.prototype.build = function() {
         }
 
         env.request.body = body;
-        console.log('LOG: ' + new Date() + ': Duration (request spooler): ' + (+Date.now() - start) + 'ms');
+        var duration = (+Date.now() - start);
+        env.printTrace('request spooler', 'Duration (request spooler): ' + duration + 'ms', { duration: duration });
         next(env);
       });
     });
@@ -90,7 +108,8 @@ Argo.prototype.build = function() {
         }
 
         env.response.body = body;
-        console.log('LOG: ' + new Date() + ': Duration (response spooler): ' + (+Date.now() - start) + 'ms');
+        var duration = (+Date.now() - start);
+        env.printTrace('target response', 'Duration (response spooler): ' + duration + 'ms', { duration: duration });
         next(env);
       });
     });
@@ -104,6 +123,8 @@ Argo.prototype.build = function() {
       env.response.end(body);
     });
   });
+
+  that.builder.use(tracer);
 
   this.builder.run(that._target);
 
@@ -146,7 +167,8 @@ Argo.prototype._route = function(router, handle) {
 
         router[key](handlers.add);
 
-        console.log(new Date() + ': Duration (route request): ' + (+Date.now() - start) + 'ms');
+        var duration = (+Date.now() - start);
+        env.printTrace('request routing', 'Duration (route request): ' + duration + 'ms', { duration: duration });
         
         handlers.request(env, next);
       }
@@ -175,7 +197,9 @@ Argo.prototype._route = function(router, handle) {
           }
         }
 
-        console.log('LOG: ' + new Date() + ': Duration (route response): ' + (+Date.now() - start) + 'ms');
+        var duration = (+Date.now() - start);
+        env.printTrace('response routing', 'Duration (route response): ' + duration + 'ms', { duration: duration });
+
         router[key](handlers.add);
         
         handlers.response(env, next);
@@ -217,7 +241,8 @@ Argo.prototype._target = function(env, next) {
       env.target.response = res;
 
       if (next) {
-        env.printTrace('target', 'Duration (target): ' + (+Date.now() - start) + 'ms');
+        var duration = (+Date.now() - start);
+        env.printTrace('target connection', 'Duration (target): ' + duration + 'ms', { duration: duration });
         next(env);
       }
     });

@@ -1,10 +1,10 @@
 var uuid = require('node-uuid');
 
 module.exports = function(addHandler) {
-  addHandler('request', function(env, next) {
+  addHandler('request', { hoist: true }, function(env, next) {
     env.requestId = uuid.v4();
     env.sequenceNumber = 0;
-    env.printTrace = function(name, message) {
+    env.printTrace = function(name, message, extra) {
       var request = env.request;
       var response = env.response;
       var target = env.target;
@@ -30,14 +30,23 @@ module.exports = function(addHandler) {
           }
         }
       };
+
+      if (extra) {
+        Object.keys(extra).forEach(function(key) {
+          if (extra.hasOwnProperty(key)) {
+            log[key] = extra[key];
+          }
+        });
+      }
       
       console.log('TRACE: ' + JSON.stringify(log));
     };
     env.trace = function(name, cb) {
       var start = +Date.now();
       cb();
-      var message = 'Duration (' + name + '): ' + (+Date.now() - start) + 'ms';
-      env.printTrace(name, message);
+      var duration = (+Date.now() - start); 
+      var message = 'Duration (' + name + '): ' + duration + 'ms';
+      env.printTrace(name, message, { duration: duration });
     };
 
     next(env);
