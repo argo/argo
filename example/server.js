@@ -1,6 +1,5 @@
 var argo = require('../');
 var cors = require('./cors');
-var tracer = require('../tracer');
 
 var proxy = argo();
 var port = process.env.PORT || 3000;
