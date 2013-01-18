@@ -9,12 +9,21 @@ var Argo = function() {
   this.builder = new Builder();
 };
 
+Argo.prototype.include = function(mod) {
+  var p = mod.package(this);
+  p.install();
+  return this;
+};
+
 Argo.prototype.listen = function(port) {
   runner.listen(this, port);
   return this;
 };
 
 Argo.prototype.use = function(middleware) {
+  if (middleware.package) {
+    return this.include(middleware);
+  }
   this.builder.use(middleware);
   return this;
 };
@@ -128,6 +137,15 @@ Argo.prototype.build = function() {
 
   this.builder.run(that._target);
 
+  this.builder.use(function(handle) {
+    handle('request', function(env, next) {
+      if (!env._routed || (!env.target || !env.target.url)) {
+        env.response.writeHead(404);
+        env.response.end();
+      }
+    });
+  });
+
   return this.builder.build();
 };
 
@@ -140,6 +158,10 @@ Argo.prototype.route = function(path, handlers) {
   return this;
 };
 
+Argo.prototype.get = function(path, handlers) {
+
+};
+
 Argo.prototype._route = function(router, handle) {
   /* Hacky.  Cache this stuff. */
 
@@ -147,6 +169,7 @@ Argo.prototype._route = function(router, handle) {
     var start = +Date.now();
     for (var key in router) {
       if (env.proxy.pathSuffix.search(key) != -1) {
+        env._routed = true;
         var handlers = {
           request: null,
           response: null
@@ -172,6 +195,11 @@ Argo.prototype._route = function(router, handle) {
         
         handlers.request(env, next);
       }
+    }
+
+    if (!env._routed) {
+      env.response.writeHead(404);
+      env.response.end();
     }
   });
 

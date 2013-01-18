@@ -20,13 +20,13 @@ module.exports = function(addHandler) {
             method: request.method,
             url: request.url,
             headers: request.headers,
-            body: request.body
+            body: (request.body && request.body.toString) ? request.body.toString() : null
           },
           response: {
             statusCode: response.statusCode,
             url: response.url,
             headers: response._headers,
-            body: response.body
+            body: (response.body && response.body.toString) ? response.body.toString() : null
           }
         }
       };
