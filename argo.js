@@ -93,6 +93,10 @@ Argo.prototype.build = function() {
     });
 
     handle('response', { hoist: true }, function(env, next) {
+      if (!env.target.response) {
+        next(env);
+        return;
+      }
       var start = +Date.now();
 
       var buf = []; 
@@ -124,19 +128,21 @@ Argo.prototype.build = function() {
     });
   });
 
+  that.builder.use(tracer);
+
+  this.builder.run(that._target);
+
   // response ender
   this.builder.use(function(handle) {
     handle('response', function(env, next) {
       var body = env.response.body;
       env.response.setHeader('Content-Length', body.length); 
+      env.response.writeHead(env.response.statusCode, env.response.headers);
       env.response.end(body);
     });
   });
 
-  that.builder.use(tracer);
-
-  this.builder.run(that._target);
-
+  /*
   this.builder.use(function(handle) {
     handle('request', function(env, next) {
       if (!env._routed || (!env.target || !env.target.url)) {
@@ -144,7 +150,7 @@ Argo.prototype.build = function() {
         env.response.end();
       }
     });
-  });
+  });*/
 
   return this.builder.build();
 };
@@ -196,14 +202,18 @@ Argo.prototype._route = function(router, handle) {
         handlers.request(env, next);
       }
     }
-
+    
     if (!env._routed) {
-      env.response.writeHead(404);
-      env.response.end();
+      next(env);
     }
   });
 
   handle('response', { hoist: true }, function(env, next) {
+    if (!env._routed) {
+      env.response.statusCode = 404;
+      next(env);
+      return;
+    }
     var start = +Date.now();
     for (var key in router) {
       if (env.proxy.pathSuffix.search(key) != -1) {
@@ -230,7 +240,11 @@ Argo.prototype._route = function(router, handle) {
 
         router[key](handlers.add);
         
-        handlers.response(env, next);
+        if (handlers.response) {
+          handlers.response(env, next);
+        } else {
+          next(env);
+        }
       }
     }
   });
@@ -277,9 +291,11 @@ Argo.prototype._target = function(env, next) {
 
     req.end();
   } else {
-    env.response.writeHead(404, { 'Content-Type': 'text/plain' });
+    next(env);
+    /*env.response.writeHead(404, { 'Content-Type': 'text/plain' });
     env.response.end('Not Found');
     env.printTrace('target', 'Duration (target not found): ' + (+Date.now() - start) + 'ms');
+    */
   }
 };
 
