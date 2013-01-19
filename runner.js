@@ -18,6 +18,7 @@ Runner.prototype.listen = function(platform, port) {
     http.createServer(function(req, res) {
       req.queryParams = {};
       res.headers = {};
+      console.log('req.url:',req.url);
       var env = { request: req, response: res, target: {}, proxy: { pathSuffix: req.url } };
       app(env);
     }).listen(port);

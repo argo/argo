@@ -28,6 +28,15 @@ Argo.prototype.use = function(middleware) {
   return this;
 };
 
+Argo.prototype.target = function(url) {
+  return this.route('/', function(addHandler) {
+    addHandler('request', function(env, next) {
+      env.target.url = url + env.request.url;
+      next(env);
+    });
+  });
+};
+
 Argo.prototype.build = function() {
   var that = this;
 
@@ -159,7 +168,11 @@ Argo.prototype.call = function(env) {
   return this.builder.call(env);
 }
 
-Argo.prototype.route = function(path, handlers) {
+Argo.prototype.route = function(path, options, handlers) {
+  if (typeof(options) === 'function') {
+    handlers = options;
+    options = null;
+  }
   this._router[path] = handlers;
   return this;
 };
