@@ -1,4 +1,5 @@
 var cluster = require('cluster');
+var domain = require('domain');
 var http = require('http');
 var Runner = function() {};
 
@@ -15,13 +16,33 @@ Runner.prototype.listen = function(platform, port) {
     });
   } else*/ {
     var app = platform.build();
-    http.createServer(function(req, res) {
-      req.queryParams = {};
-      res.headers = {};
-      console.log('req.url:',req.url);
-      var env = { request: req, response: res, target: {}, proxy: { pathSuffix: req.url } };
-      app(env);
-    }).listen(port);
+    var serverDomain = domain.create();
+    serverDomain.run(function() {
+      http.createServer(function(req, res) {
+        var requestDomain = domain.create();
+        requestDomain.add(req);
+        requestDomain.add(res);
+        requestDomain.on('error', function(err) {
+          console.log('ERROR:', err.toString(), req.url);
+
+          try {
+            res.writeHead(500);
+            res.end('Internal Server Error');
+            res.on('close', function() {
+              requestDomain.dispose();
+            });
+          } catch (err) {
+            console.log('ERROR: Unable to send 500 Internal Server Error', 
+              err.toString(), req.url);
+            requestDomain.dispose();
+          }
+        });
+        req.queryParams = {};
+        res.headers = {};
+        var env = { request: req, response: res, target: {}, proxy: { pathSuffix: req.url } };
+        app(env);
+      }).listen(port);
+    });
   }
 };
 

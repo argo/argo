@@ -181,7 +181,7 @@ Argo.prototype.route = function(path, options, handlers) {
 
   var that = this;
   options.methods.forEach(function(method) {
-    that._router[path][method] = handlers;
+    that._router[path][method.toLowerCase()] = handlers;
   });
 
   return this;
@@ -215,14 +215,14 @@ Argo.prototype._route = function(router, handle) {
     var start = +Date.now();
     for (var key in router) {
       if (env.request.url.search(key) !== -1 &&
-          (!router[key][env.request.method] &&
+          (!router[key][env.request.method.toLowerCase()] &&
            !router[key]['*'])) {
         env.response.statusCode = 405;
         next(env);
         return;
       }
       if (env.request.url.search(key) != -1 &&
-          (router[key][env.request.method] ||
+          (router[key][env.request.method.toLowerCase()] ||
            router[key]['*'])) {
         env._routed = true;
         var handlers = {
@@ -243,7 +243,8 @@ Argo.prototype._route = function(router, handle) {
           }
         }
 
-        var fn = router[key][env.request.method] ? router[key][env.request.method] 
+        var method = env.request.method.toLowerCase();
+        var fn = router[key][method] ? router[key][method] 
           : router[key]['*'];
         fn(handlers.add);
 
@@ -271,7 +272,7 @@ Argo.prototype._route = function(router, handle) {
     var start = +Date.now();
     for (var key in router) {
       if (env.request.url.search(key) != -1 &&
-          (router[key][env.request.method] ||
+          (router[key][env.request.method.toLowerCase()] ||
            router[key]['*'])) {
         var handlers = {
           request: null,
@@ -294,7 +295,8 @@ Argo.prototype._route = function(router, handle) {
         var duration = (+Date.now() - start);
         env.printTrace('response routing', 'Duration (route response): ' + duration + 'ms', { duration: duration });
 
-        var fn = router[key][env.request.method] ? router[key][env.request.method] 
+        var method = env.request.method.toLowerCase();
+        var fn = router[key][method] ? router[key][method] 
           : router[key]['*'];
         fn(handlers.add);
         
