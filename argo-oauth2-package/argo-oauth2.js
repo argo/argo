@@ -30,8 +30,8 @@ OAuth2.prototype.package = function(argo) {
       argo.route(that.endpoints.accessToken, that.accessToken());
 
       var oldRoute = argo.route.bind(argo);
-      argo.route = function(path, handle) {
-        return oldRoute(path, that.protect(handle));
+      argo.route = function(path, options, handle) {
+        return oldRoute(path, options, that.protect(handle));
       };
     }
   };

@@ -22,8 +22,8 @@ Runner.prototype.listen = function(platform, port) {
         var requestDomain = domain.create();
         requestDomain.add(req);
         requestDomain.add(res);
-        requestDomain.on('error', function(err) {
-          console.log('ERROR:', err.toString(), req.url);
+        requestDomain.on('*error', function(err) {
+          console.log('ERROR:', err.toString(), req.url, err);
 
           try {
             res.writeHead(500);
@@ -33,7 +33,7 @@ Runner.prototype.listen = function(platform, port) {
             });
           } catch (err) {
             console.log('ERROR: Unable to send 500 Internal Server Error', 
-              err.toString(), req.url);
+              err.toString(), req.url, err);
             requestDomain.dispose();
           }
         });
