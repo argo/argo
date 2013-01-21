@@ -221,7 +221,7 @@ OAuth2.prototype.accessToken = function() {
               return;
             }
             if (res.validated) {
-              var body = res.body;
+              var body = res.body.toString();
 
               var headers = {
                 'Content-Type': res.contentType,
@@ -230,6 +230,9 @@ OAuth2.prototype.accessToken = function() {
                 'Pragma': 'no-cache'
               };
 
+              /*env.response.statusCode = 200;
+              env.response.headers = headers;
+              env.response.body = body;*/
               env.response.writeHead(200, headers);
               env.response.end(body);
             }

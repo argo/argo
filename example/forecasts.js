@@ -1,3 +1,4 @@
+var url = require('url');
 var DOMParser = require('xmldom').DOMParser;
 
 module.exports = function(addHandler) {
@@ -7,7 +8,9 @@ module.exports = function(addHandler) {
       var result = regex.exec(env.proxy.pathSuffix);
 
       var woeid = result ? result[1] : '2467861' /* Palo Alto, CA */;
-      env.target.url = 'http://weather.yahooapis.com/forecastrss?w=' + woeid;
+      var parsed = url.parse(env.target.url);
+      parsed.pathname = '/forecastrss?w=' + woeid;
+      env.target.url = url.format(parsed);
     });
 
     next(env);

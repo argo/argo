@@ -311,6 +311,9 @@ Argo.prototype._route = function(router, handle) {
 };
 
 Argo.prototype._target = function(env, next) {
+  if (env.response._headerSent) {
+    return;
+  }
   var start = +Date.now();
 
   if (env.target && env.target.url) {
