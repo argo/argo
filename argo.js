@@ -7,6 +7,16 @@ var tracer = require('./tracer');
 var Argo = function() {
   this._router = {};
   this.builder = new Builder();
+
+  var incoming = http.IncomingMessage.prototype;
+  var _addHeaderLine = incoming._addHeaderLine;
+
+  incoming._addHeaderLine = function(field, value) {
+    this._rawHeaderNames = this._rawHeaderNames || {};
+    this._rawHeaderNames[field.toLowerCase()] = field;
+
+    _addHeaderLine.call(this, field, value);
+  };
 };
 
 Argo.prototype.include = function(mod) {
@@ -340,7 +350,8 @@ Argo.prototype._target = function(env, next) {
     var req = http.request(options, function(res) {
       for (var key in res.headers) {
         //env.response.setHeader(capitalize(key), res.headers[key]);
-        env.response.setHeader(key, res.headers[key]);
+        headerName = res._rawHeaderNames[key] || key;
+        env.response.setHeader(headerName, res.headers[key]);
       }
 
       env.target.response = res;

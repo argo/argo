@@ -20,5 +20,8 @@ var userStrategy = new oauth2.InMemoryUserStrategy({
 
 module.exports = {
   clientStrategy: clientStrategy,
-  userStrategy: userStrategy
+  userStrategy: userStrategy,
+  supported: {
+    'authorization_code': 'bearer'
+  }
 };

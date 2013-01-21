@@ -18,6 +18,13 @@ function OAuth2(options) {
   var bearer = bearerTokenStrategy();
   this._tokenStrategies = {};
   this._tokenStrategies[bearer.scheme.toLowerCase()] = bearer;
+
+  var that = this;
+  if (that.options.supported) {
+    Object.keys(that.options.supported).forEach(function(grantType) {
+      that.support(grantType, that.options.supported[grantType]);
+    });
+  }
 };
 
 OAuth2.prototype.package = function(argo) {
@@ -313,7 +320,7 @@ OAuth2.prototype.protect = function(wrapped) {
   };
 };
 
-exports.configure = function(options) {
+exports.createProvider = function(options) {
   return new OAuth2(options);
 };
 
