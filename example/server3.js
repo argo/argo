@@ -1,5 +1,5 @@
 var argo = require('../');
 
 argo()
-  .target('http://localhost:8080')
+  .target('https://stream.twitter.com')
   .listen(process.env.PORT || 3000);

@@ -23,7 +23,7 @@ Runner.prototype.listen = function(platform, port) {
         requestDomain.add(req);
         requestDomain.add(res);
         // TODO: Remove asterisk.  Fix reporting in dev mode.
-        requestDomain.on('*error', function(err) {
+        requestDomain.on('error', function(err) {
           console.log('ERROR:', err.toString(), req.url, err);
 
           try {

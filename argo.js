@@ -29,7 +29,7 @@ Argo.prototype.use = function(middleware) {
 };
 
 Argo.prototype.target = function(url) {
-  return this.route('/', function(addHandler) {
+  return this.use(function(addHandler) {
     addHandler('request', function(env, next) {
       env.target.url = url + env.request.url;
       next(env);

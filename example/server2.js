@@ -1,7 +1,7 @@
 var argo = require('../');
 
 argo()
-  .get('/', function(addHandler) {
+  .get('/greeting', function(addHandler) {
     addHandler('request', function(env, next) {
       env.trace('greeting', function() {
         env.response.statusCode = 200;
@@ -12,5 +12,5 @@ argo()
       });
     });
   })
-  .listen(8011);
+  .listen(process.env.PORT || 3000);
 
