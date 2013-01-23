@@ -1,6 +1,8 @@
 var argo = require('../');
+var cors = require('./cors');
 
 argo()
+  .use(cors)
   .get('/greeting', function(addHandler) {
     addHandler('request', function(env, next) {
       env.trace('greeting', function() {
