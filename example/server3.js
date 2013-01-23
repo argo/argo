@@ -1,5 +1,5 @@
 var argo = require('../');
 
 argo()
-  .target('https://stream.twitter.com')
+  .target('http://weather.yahooapis.com')
   .listen(process.env.PORT || 3000);

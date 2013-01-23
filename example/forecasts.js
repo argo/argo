@@ -5,7 +5,7 @@ module.exports = function(addHandler) {
   addHandler('request', function(env, next) {
     env.trace('forecast request', function() {
       var regex = /\/([0-9]+)\.json/;
-      var result = regex.exec(env.proxy.pathSuffix);
+      var result = regex.exec(env.request.url);
 
       var woeid = result ? result[1] : '2467861' /* Palo Alto, CA */;
       var parsed = url.parse(env.target.url);

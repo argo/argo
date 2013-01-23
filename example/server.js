@@ -5,15 +5,9 @@ var oauthOptions = require('./oauthOptions');
 
 var oauth = oauth2.createProvider(oauthOptions);
 
-var proxy = argo();
-
-var port = process.env.PORT || 3000;
-
-proxy
+argo()
   .use(oauth)
   .use(cors)
   .target('http://weather.yahooapis.com')
   .get('/weather/forecasts', require('./forecasts'))
-  .listen(port);
-
-console.log('Listening on http://localhost:' + port);
+  .listen(process.env.PORT || 3000);
