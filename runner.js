@@ -24,7 +24,7 @@ Runner.prototype.listen = function(platform, port) {
         requestDomain.add(res);
         // TODO: Remove asterisk.  Fix reporting in dev mode.
         requestDomain.on('error', function(err) {
-          console.log('ERROR:', err.toString(), req.url, err);
+          console.log('ERROR:', err.toString(), err.stack, req.url, err);
 
           try {
             res.writeHead(500);
@@ -34,7 +34,7 @@ Runner.prototype.listen = function(platform, port) {
             });
           } catch (err) {
             console.log('ERROR: Unable to send 500 Internal Server Error', 
-              err.toString(), req.url, err);
+              err.toString(), err.stack, req.url, err);
             requestDomain.dispose();
           }
         });

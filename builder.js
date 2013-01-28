@@ -23,8 +23,25 @@ Builder.prototype._buildHandler = function(eventHandlerMap) {
     if (eventHandlerMap[event]) {
       options = options || {};
       options.hoist = options.hoist || false;
+      options.sink = options.sink || false;
 
-      var operation = options.hoist ? 'unshift' : 'push';
+      //var operation = options.hoist ? 'unshift' : 'push';
+
+      var operation = 'push';
+      if (options.hoist && event === 'response') {
+        event = 'preResponse';
+        operation = 'unshift';
+      } else if (options.sink && event === 'response') {
+        event = 'postResponse';
+        operation = 'push';
+      } else if (options.hoist && event === 'request') {
+        event = 'preRequest';
+        operation = 'unshift';
+      } else if (options.sink && event === 'request') {
+        event = 'postRequest';
+        operation = 'push';
+      }
+
       var m = eventHandlerMap[event];
 
       m[operation].call(m, handler);
@@ -35,7 +52,11 @@ Builder.prototype._buildHandler = function(eventHandlerMap) {
 Builder.prototype.build = function() {
   var eventHandlerMap = { 
     request: [],
-    response: []
+    response: [],
+    preResponse: [],
+    postResponse: [],
+    preRequest: [],
+    postRequest: []
   };
 
   var handle = this._buildHandler(eventHandlerMap);
@@ -44,7 +65,19 @@ Builder.prototype.build = function() {
   });
 
   var pipeline = new LinkedList();
-  var handlers = eventHandlerMap.request.concat(this._targetApp, eventHandlerMap.response);
+  this._targetApp = this._targetApp || function(env, next) { next(env); };
+  var handlers = eventHandlerMap.preRequest.concat(
+      eventHandlerMap.request,
+      eventHandlerMap.postRequest,
+      this._targetApp,
+      eventHandlerMap.preResponse,
+      eventHandlerMap.response.reverse(),
+      eventHandlerMap.postResponse);
+
+  /*console.log('request:', eventHandlerMap.request.length);
+  console.log('preResponse:', eventHandlerMap.preResponse.length);
+  console.log('response', eventHandlerMap.response.length);
+  console.log('postResponse', eventHandlerMap.postResponse.length);*/
 
   handlers = handlers.slice(0).reverse();
 

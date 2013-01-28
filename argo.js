@@ -47,7 +47,7 @@ Argo.prototype.target = function(url) {
   });
 };
 
-Argo.prototype.build = function() {
+Argo.prototype.build = function(isNested) {
   var that = this;
 
   /*that.builder.use(function(addHandler) {
@@ -80,86 +80,90 @@ Argo.prototype.build = function() {
   }
 
   // spooler
-  this.builder.use(function(handle) {
-    handle('request', { hoist: true }, function(env, next) {
-      var start = +Date.now();
+  if (!isNested) {
+    this.builder.use(function(handle) {
+      handle('request', { hoist: true }, function(env, next) {
+        var start = +Date.now();
 
-      var buf = [];
-      var len = 0;
-      env.request.on('data', function(chunk) {
-        buf.push(chunk);
-        len += chunk.length;
+        var buf = [];
+        var len = 0;
+        env.request.on('data', function(chunk) {
+          buf.push(chunk);
+          len += chunk.length;
+        });
+
+        env.request.on('end', function() {
+          var body;
+          if (buf.length && Buffer.isBuffer(buf[0])) {
+            body = new Buffer(len);
+            var i = 0;
+            buf.forEach(function(chunk) {
+              chunk.copy(body, i, 0, chunk.length);
+              i += chunk.length;
+            });
+          } else if (buf.length) {
+            body = buf.join('');
+          }
+
+          env.request.body = body;
+          var duration = (+Date.now() - start);
+          env.printTrace('request spooler', 'Duration (request spooler): ' + duration + 'ms', { duration: duration });
+          next(env);
+        });
       });
 
-      env.request.on('end', function() {
-        var body;
-        if (buf.length && Buffer.isBuffer(buf[0])) {
-          body = new Buffer(len);
-          var i = 0;
-          buf.forEach(function(chunk) {
-            chunk.copy(body, i, 0, chunk.length);
-            i += chunk.length;
-          });
-        } else if (buf.length) {
-          body = buf.join('');
+      handle('response', { hoist: true }, function(env, next) {
+        if (!env.target.response) {
+          next(env);
+          return;
         }
+        var start = +Date.now();
 
-        env.request.body = body;
-        var duration = (+Date.now() - start);
-        env.printTrace('request spooler', 'Duration (request spooler): ' + duration + 'ms', { duration: duration });
-        next(env);
+        var buf = []; 
+        var len = 0;
+        env.target.response.on('data', function(chunk) {
+          buf.push(chunk);
+          len += chunk.length;
+        });
+
+        env.target.response.on('end', function() {
+          var body;
+          if (buf.length && Buffer.isBuffer(buf[0])) {
+            body = new Buffer(len);
+            var i = 0;
+            buf.forEach(function(chunk) {
+              chunk.copy(body, i, 0, chunk.length);
+              i += chunk.length;
+            });
+            body = body.toString('binary');
+          } else if (buf.length) {
+            body = buf.join('');
+          }
+
+          env.response.body = body;
+          var duration = (+Date.now() - start);
+          env.printTrace('target response', 'Duration (response spooler): ' + duration + 'ms', { duration: duration });
+          next(env);
+        });
       });
     });
-
-    handle('response', { hoist: true }, function(env, next) {
-      if (!env.target.response) {
-        next(env);
-        return;
-      }
-      var start = +Date.now();
-
-      var buf = []; 
-      var len = 0;
-      env.target.response.on('data', function(chunk) {
-        buf.push(chunk);
-        len += chunk.length;
-      });
-
-      env.target.response.on('end', function() {
-        var body;
-        if (buf.length && Buffer.isBuffer(buf[0])) {
-          body = new Buffer(len);
-          var i = 0;
-          buf.forEach(function(chunk) {
-            chunk.copy(body, i, 0, chunk.length);
-            i += chunk.length;
-          });
-          body = body.toString('binary');
-        } else if (buf.length) {
-          body = buf.join('');
-        }
-
-        env.response.body = body;
-        var duration = (+Date.now() - start);
-        env.printTrace('target response', 'Duration (response spooler): ' + duration + 'ms', { duration: duration });
-        next(env);
-      });
-    });
-  });
+  }
 
   that.builder.use(tracer);
 
   this.builder.run(that._target);
 
-  // response ender
-  this.builder.use(function(handle) {
-    handle('response', function(env, next) {
-      var body = env.response.body || '';
-      env.response.setHeader('Content-Length', body.length); 
-      env.response.writeHead(env.response.statusCode, env.response.headers);
-      env.response.end(body);
+  if (!isNested) {
+    // response ender
+    this.builder.use(function(handle) {
+      handle('response', { sink: true }, function(env, next) {
+        var body = env.response.body || '';
+        env.response.setHeader('Content-Length', body.length); 
+        env.response.writeHead(env.response.statusCode, env.response.headers);
+        env.response.end(body);
+      });
     });
-  });
+  }
 
   /*
   this.builder.use(function(handle) {
@@ -218,20 +222,64 @@ Object.keys(methods).forEach(function(method) {
   };
 });
 
+Argo.prototype.map = function(path, options, handler) {
+  if (typeof(options) === 'function') {
+    handler = options;
+    options = {};
+  }
+
+  options.methods = options.methods || ['*'];
+  if (!this._router[path]) {
+    this._router[path] = {};
+  }
+
+  var that = this;
+  var _handler = function(addHandler) {
+    addHandler('request', function(env, next) {
+      if (env.request.url[env.request.url.length - 1] === '/') {
+        env.request.url = env.request.url.substr(0, env.request.url.length - 1);
+      }
+      env.request.routeUri = env.request.url.substr(path.length) || '/';
+      var argo = new Argo();
+      argo = argo.use(function(addHandler) {
+        addHandler('response', next);
+      });
+
+      handler(argo);
+
+      var app = argo.build(true);
+      app(env);
+    });
+  };
+
+  return this.route(path, options, _handler);
+};
+
 Argo.prototype._route = function(router, handle) {
+  /*if (typeof handle === 'object' && handle.run) {
+    
+    handle('request', function(env, next) {
+      console.log(handle.run.toString());
+      handle.run(env, next);
+    });
+
+    return;
+  }*/
   /* Hacky.  Cache this stuff. */
 
   handle('request', function(env, next) {
+    env._routed = false;
     var start = +Date.now();
+    var search = env.request.routeUri || env.request.url;
     for (var key in router) {
-      if (env.request.url.search(key) !== -1 &&
+      if (search.search(key) !== -1 &&
           (!router[key][env.request.method.toLowerCase()] &&
            !router[key]['*'])) {
         env.response.statusCode = 405;
         next(env);
         return;
       }
-      if (env.request.url.search(key) != -1 &&
+      if (search.search(key) != -1 &&
           (router[key][env.request.method.toLowerCase()] ||
            router[key]['*'])) {
         env._routed = true;
@@ -280,8 +328,13 @@ Argo.prototype._route = function(router, handle) {
       return;
     }
     var start = +Date.now();
+    var search = env.request.routeUri || env.request.url;
+
+    // clear this for outer route scope
+    env.request.routeUri = null;
+
     for (var key in router) {
-      if (env.request.url.search(key) != -1 &&
+      if (search.search(key) != -1 &&
           (router[key][env.request.method.toLowerCase()] ||
            router[key]['*'])) {
         var handlers = {
