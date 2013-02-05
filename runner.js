@@ -17,8 +17,8 @@ Runner.prototype.listen = function(platform, port) {
   } else*/ {
     var app = platform.build();
     var serverDomain = domain.create();
-    serverDomain.run(function() {
-      http.createServer(function(req, res) {
+    serverDomain.run(function domainRunner() {
+      http.createServer(function httpRequestHandler(req, res) {
         var requestDomain = domain.create();
         requestDomain.add(req);
         requestDomain.add(res);

@@ -9,14 +9,17 @@ var Argo = function() {
   this.builder = new Builder();
 
   var incoming = http.IncomingMessage.prototype;
-  var _addHeaderLine = incoming._addHeaderLine;
+  if (!incoming._modifiedHeaderLine) {
+    var _addHeaderLine = incoming._addHeaderLine;
 
-  incoming._addHeaderLine = function(field, value) {
-    this._rawHeaderNames = this._rawHeaderNames || {};
-    this._rawHeaderNames[field.toLowerCase()] = field;
+    incoming._modifiedHeaderLine = true;
+    incoming._addHeaderLine = function(field, value) {
+      this._rawHeaderNames = this._rawHeaderNames || {};
+      this._rawHeaderNames[field.toLowerCase()] = field;
 
-    _addHeaderLine.call(this, field, value);
-  };
+      _addHeaderLine.call(this, field, value);
+    };
+  }
 };
 
 Argo.prototype.include = function(mod) {
@@ -74,82 +77,95 @@ Argo.prototype.build = function(isNested) {
   }
 
   if (hasRoutes) {
-    this.builder.use(function(handlers) { 
+    this.builder.use(function addRouteHandlers(handlers) { 
      that._route(that._router, handlers);
     });
   }
 
   // spooler
   if (!isNested) {
-    this.builder.use(function(handle) {
+    this.builder.use(function bufferRequest(handle) {
       handle('request', { hoist: true }, function(env, next) {
-        var start = +Date.now();
+        env.request.getBody = function(callback) {
+          var start = +Date.now();
 
-        var buf = [];
-        var len = 0;
-        env.request.on('data', function(chunk) {
-          buf.push(chunk);
-          len += chunk.length;
-        });
+          var buf = [];
+          var len = 0;
+          env.request.on('data', function(chunk) {
+            buf.push(chunk);
+            len += chunk.length;
+          });
 
-        env.request.on('end', function() {
-          var body;
-          if (buf.length && Buffer.isBuffer(buf[0])) {
-            body = new Buffer(len);
-            var i = 0;
-            buf.forEach(function(chunk) {
-              chunk.copy(body, i, 0, chunk.length);
-              i += chunk.length;
-            });
-          } else if (buf.length) {
-            body = buf.join('');
-          }
+          env.request.on('end', function() {
+            var body;
+            if (buf.length && Buffer.isBuffer(buf[0])) {
+              body = new Buffer(len);
+              var i = 0;
+              buf.forEach(function(chunk) {
+                chunk.copy(body, i, 0, chunk.length);
+                i += chunk.length;
+              });
+            } else if (buf.length) {
+              body = buf.join('');
+            }
 
-          env.request.body = body;
-          var duration = (+Date.now() - start);
-          env.printTrace('request spooler', 'Duration (request spooler): ' + duration + 'ms', { duration: duration });
-          next(env);
-        });
+            env.request.body = body;
+
+            var duration = (+Date.now() - start);
+            env.printTrace('request spooler', 'Duration (request spooler): ' + duration + 'ms', { duration: duration });
+
+            callback(null, body);
+          });
+        };
+        next(env);
       });
 
-      handle('response', { hoist: true }, function(env, next) {
+      handle('response', { hoist: true }, function bufferResponse(env, next) {
         if (!env.target.response) {
           next(env);
           return;
         }
-        var start = +Date.now();
 
-        var buf = []; 
-        var len = 0;
-        env.target.response.on('data', function(chunk) {
-          buf.push(chunk);
-          len += chunk.length;
-        });
+        env.response.getBody = function(callback) {
+          var start = +Date.now();
 
-        env.target.response.on('end', function() {
-          var body;
-          if (buf.length && Buffer.isBuffer(buf[0])) {
-            body = new Buffer(len);
-            var i = 0;
-            buf.forEach(function(chunk) {
-              chunk.copy(body, i, 0, chunk.length);
-              i += chunk.length;
-            });
-            body = body.toString('binary');
-          } else if (buf.length) {
-            body = buf.join('');
-          }
+          var buf = []; 
+          var len = 0;
+          env.target.response.on('data', function(chunk) {
+            buf.push(chunk);
+            len += chunk.length;
+          });
 
-          env.response.body = body;
-          var duration = (+Date.now() - start);
-          env.printTrace('target response', 'Duration (response spooler): ' + duration + 'ms', { duration: duration });
-          next(env);
-        });
+          env.target.response.on('end', function() {
+            var body;
+            if (buf.length && Buffer.isBuffer(buf[0])) {
+              body = new Buffer(len);
+              var i = 0;
+              buf.forEach(function(chunk) {
+                chunk.copy(body, i, 0, chunk.length);
+                i += chunk.length;
+              });
+              body = body.toString('binary');
+            } else if (buf.length) {
+              body = buf.join('');
+            }
+
+            env.response.body = body;
+            var duration = (+Date.now() - start);
+            env.printTrace('target response', 'Duration (response spooler): ' + duration + 'ms', { duration: duration });
+
+            callback(null, body);
+          });
+        };
+
+        next(env);
       });
     });
   }
 
-  that.builder.use(tracer);
+  if (!isNested) {
+    that.builder.use(tracer);
+  }
 
   this.builder.run(that._target);
 
@@ -157,6 +173,15 @@ Argo.prototype.build = function(isNested) {
     // response ender
     this.builder.use(function(handle) {
       handle('response', { sink: true }, function(env, next) {
+        if (!env.response.body && env.response.getBody) {
+          env.response.getBody(function(err, body) {
+            var body = body || '';
+            env.response.setHeader('Content-Length', body.length); 
+            env.response.writeHead(env.response.statusCode, env.response.headers);
+            env.response.end(body);
+          });
+          return;
+        }
         var body = env.response.body || '';
         env.response.setHeader('Content-Length', body.length); 
         env.response.writeHead(env.response.statusCode, env.response.headers);
@@ -235,13 +260,13 @@ Argo.prototype.map = function(path, options, handler) {
 
   var that = this;
   var _handler = function(addHandler) {
-    addHandler('request', function(env, next) {
+    addHandler('request', function mapHandler(env, next) {
       if (env.request.url[env.request.url.length - 1] === '/') {
         env.request.url = env.request.url.substr(0, env.request.url.length - 1);
       }
       env.request.routeUri = env.request.url.substr(path.length) || '/';
       var argo = new Argo();
-      argo = argo.use(function(addHandler) {
+      argo.use(function(addHandler) {
         addHandler('response', next);
       });
 
@@ -255,19 +280,8 @@ Argo.prototype.map = function(path, options, handler) {
   return this.route(path, options, _handler);
 };
 
-Argo.prototype._route = function(router, handle) {
-  /*if (typeof handle === 'object' && handle.run) {
-    
-    handle('request', function(env, next) {
-      console.log(handle.run.toString());
-      handle.run(env, next);
-    });
-
-    return;
-  }*/
-  /* Hacky.  Cache this stuff. */
-
-  handle('request', function(env, next) {
+Argo.prototype._routeRequestHandler = function(router) {
+  return function routeRequestHandler(env, next) {
     env._routed = false;
     var start = +Date.now();
     var search = env.request.routeUri || env.request.url;
@@ -309,6 +323,7 @@ Argo.prototype._route = function(router, handle) {
         var duration = (+Date.now() - start);
         env.printTrace('request routing', 'Duration (route request): ' + duration + 'ms', { duration: duration });
         
+        env._routedResponseHandler = handlers.response || null;
         handlers.request(env, next);
       }
     }
@@ -316,9 +331,11 @@ Argo.prototype._route = function(router, handle) {
     if (!env._routed) {
       next(env);
     }
-  });
+  };
+};
 
-  handle('response', { hoist: true }, function(env, next) {
+Argo.prototype._routeResponseHandler = function(router) {
+  return function routeResponseHandler(env, next) {
     if (!env._routed) {
       if (env.response.statusCode !== 405) {
         env.response.statusCode = 404;
@@ -327,6 +344,16 @@ Argo.prototype._route = function(router, handle) {
       next(env);
       return;
     }
+
+    if (env._routedResponseHandler) {
+      env.printTrace('response routing: (Cached)');
+      env.routedResponseHandler(env, next);
+      return;
+    } else if (env._routedResponseHandler === null) {
+      next(env);
+      return;
+    }
+
     var start = +Date.now();
     var search = env.request.routeUri || env.request.url;
 
@@ -370,7 +397,14 @@ Argo.prototype._route = function(router, handle) {
         }
       }
     }
-  });
+  };
+};
+
+Argo.prototype._route = function(router, handle) {
+  /* Hacky.  Cache this stuff. */
+
+  handle('request', this._routeRequestHandler(router));
+  handle('response', { hoist: true }, this._routeResponseHandler(router));
 };
 
 Argo.prototype._target = function(env, next) {

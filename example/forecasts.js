@@ -17,12 +17,14 @@ module.exports = function(addHandler) {
   });
 
   addHandler('response', function(env, next) {
-    env.trace('forecast response', function() {
-      var json = xmlToJson(env.response.body);
-      env.response.body = JSON.stringify(json);
+    env.response.setHeader('Content-Type', 'application/json;charset=UTF-8');
+    env.response.getBody(function(err, body) {
+      env.trace('forecast response', function() {
+        var json = xmlToJson(env.response.body);
+        env.response.body = JSON.stringify(json);
+      });
+      next(env);
     });
-
-    next(env);
   });
 };
 

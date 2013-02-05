@@ -6,7 +6,7 @@ var oauthOptions = require('./oauthOptions');
 var oauth = oauth2.createProvider(oauthOptions);
 
 argo()
-  .use(oauth)
+  //.use(oauth)
   .use(cors)
   .target('http://weather.yahooapis.com')
   .get('/weather/forecasts', require('./forecasts'))
