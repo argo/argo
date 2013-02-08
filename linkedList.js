@@ -21,10 +21,6 @@ LinkedList.prototype.head = function() {
   return this._items[0];
 }
 
-LinkedList.prototype.length = function() {
-  return this._items.length;
-};
-
 LinkedList.Node = function(value) {
   this.value = value;
   this.next = null;

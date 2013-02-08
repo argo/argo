@@ -44,7 +44,7 @@ Argo.prototype.use = function(middleware) {
 Argo.prototype.target = function(url) {
   return this.use(function(addHandler) {
     addHandler('request', function(env, next) {
-      env.target.url = url + env.request.url;
+      env.target.url = url + (env.request.url || '');
       next(env);
     });
   });
@@ -204,7 +204,8 @@ Argo.prototype.build = function(isNested) {
 };
 
 Argo.prototype.call = function(env) {
-  return this.builder.call(env);
+  var app = this.build();
+  return app(env);
 }
 
 Argo.prototype.route = function(path, options, handlers) {
