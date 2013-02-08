@@ -2,7 +2,6 @@ var http = require('http');
 var url = require('url');
 var Builder = require('./builder');
 var runner = require('./runner');
-var tracer = require('./tracer');
 
 var Argo = function() {
   this._router = {};
@@ -52,22 +51,6 @@ Argo.prototype.target = function(url) {
 
 Argo.prototype.build = function(isNested) {
   var that = this;
-
-  /*that.builder.use(function(addHandler) {
-    addHandler('request', { hoist: true }, function(env, next) {
-      env.startTime = +Date.now();
-      next(env);
-    });
-  });
-
-  that.builder.use(function(addHandler) {
-    addHandler('response', function(env, next) {
-      var stop = +Date.now();
-      var duration = stop - env.startTime;
-      env.printTrace('total', 'Duration (total): ' + duration + 'ms', { duration: duration });
-      next(env);
-    });
-  });*/
 
   var hasRoutes = false;
   for (var prop in that._router) {
@@ -163,9 +146,11 @@ Argo.prototype.build = function(isNested) {
     });
   }
 
-  /*if (!isNested) {
-    that.builder.use(tracer);
-  }*/
+  // Removing tracer for now.  Performance is too slow.
+  //
+  // if (!isNested) {
+  //   that.builder.use(tracer);
+  // }
 
   this.builder.run(that._target);
 
@@ -189,16 +174,6 @@ Argo.prototype.build = function(isNested) {
       });
     });
   }
-
-  /*
-  this.builder.use(function(handle) {
-    handle('request', function(env, next) {
-      if (!env._routed || (!env.target || !env.target.url)) {
-        env.response.writeHead(404);
-        env.response.end();
-      }
-    });
-  });*/
 
   return this.builder.build();
 };
@@ -394,8 +369,6 @@ Argo.prototype._routeResponseHandler = function(router) {
 };
 
 Argo.prototype._route = function(router, handle) {
-  /* Hacky.  Cache this stuff. */
-
   handle('request', this._routeRequestHandler(router));
   handle('response', { hoist: true }, this._routeResponseHandler(router));
 };
@@ -429,7 +402,6 @@ Argo.prototype._target = function(env, next) {
 
     var req = http.request(options, function(res) {
       for (var key in res.headers) {
-        //env.response.setHeader(capitalize(key), res.headers[key]);
         headerName = res._rawHeaderNames[key] || key;
         env.response.setHeader(headerName, res.headers[key]);
       }
@@ -446,18 +418,7 @@ Argo.prototype._target = function(env, next) {
     req.end();
   } else {
     next(env);
-    /*env.response.writeHead(404, { 'Content-Type': 'text/plain' });
-    env.response.end('Not Found');
-    env.printTrace('target', 'Duration (target not found): ' + (+Date.now() - start) + 'ms');
-    */
   }
 };
-
-function capitalize(str) {
-  return str.split('-').map(function(string) {
-    if (string === 'p3p') return 'P3P';
-    return string.charAt(0).toUpperCase() + string.slice(1);
-  }).join('-');
-}
 
 module.exports = function() { return new Argo() };

@@ -142,4 +142,39 @@ describe('Argo', function() {
         .call(defaultEnv);
     });
   });
+
+  describe('#route', function() {
+    it('executes route handler on matched route', function(done) {
+      defaultEnv.request.url = '/route';
+      defaultEnv.request.method = 'GET';
+      argo()
+        .route('/route', function(addHandler) {
+          addHandler('request', function(env, next) {
+            assert.equal(env.request.url, '/route');
+            done();
+          });
+        })
+      .call(defaultEnv);
+    });
+  });
+
+  describe('#map', function() {
+    it('handles sub-routing', function(done) {
+      defaultEnv.request.url = '/map/sub';
+      defaultEnv.request.method = 'GET';
+
+      argo()
+        .map('/map', function(server) {
+          server
+            .route('/sub', function(addHandler) {
+              addHandler('request', function(env, next) {
+                assert.equal(env.request.url, '/map/sub');
+                done();
+                next(env);
+              });
+            });
+        })
+        .call(defaultEnv);
+    });
+  });
 });
