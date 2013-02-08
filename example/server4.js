@@ -1,6 +1,5 @@
 var argo = require('../');
 var cors = require('./cors');
-var agent = require('webkit-devtools-agent');
 
 argo()
   .use(cors)

@@ -112,7 +112,7 @@ Argo.prototype.build = function(isNested) {
             env.request.body = body;
 
             var duration = (+Date.now() - start);
-            env.printTrace('request spooler', 'Duration (request spooler): ' + duration + 'ms', { duration: duration });
+            //env.printTrace('request spooler', 'Duration (request spooler): ' + duration + 'ms', { duration: duration });
 
             callback(null, body);
           });
@@ -152,7 +152,7 @@ Argo.prototype.build = function(isNested) {
 
             env.response.body = body;
             var duration = (+Date.now() - start);
-            env.printTrace('target response', 'Duration (response spooler): ' + duration + 'ms', { duration: duration });
+            //env.printTrace('target response', 'Duration (response spooler): ' + duration + 'ms', { duration: duration });
 
             callback(null, body);
           });
@@ -163,9 +163,9 @@ Argo.prototype.build = function(isNested) {
     });
   }
 
-  if (!isNested) {
+  /*if (!isNested) {
     that.builder.use(tracer);
-  }
+  }*/
 
   this.builder.run(that._target);
 
@@ -280,10 +280,31 @@ Argo.prototype.map = function(path, options, handler) {
   return this.route(path, options, _handler);
 };
 
+Argo.prototype._addRouteHandlers = function(handlers) {
+  return function add(name, opts, cb) {
+    if (typeof opts === 'function') {
+      cb = opts;
+      opts = null;
+    }
+
+    if (name === 'request') {
+      handlers.request = cb;
+    } else if (name === 'response') {
+      handlers.response = cb;
+    }
+  };
+};
+
+function RouteHandlers() {
+  this.request = null;
+  this.response = null;
+}
+
 Argo.prototype._routeRequestHandler = function(router) {
+  var that = this;
   return function routeRequestHandler(env, next) {
     env._routed = false;
-    var start = +Date.now();
+    //var start = +Date.now();
     var search = env.request.routeUri || env.request.url;
     for (var key in router) {
       if (search.search(key) !== -1 &&
@@ -297,31 +318,16 @@ Argo.prototype._routeRequestHandler = function(router) {
           (router[key][env.request.method.toLowerCase()] ||
            router[key]['*'])) {
         env._routed = true;
-        var handlers = {
-          request: null,
-          response: null
-        }
-        
-        handlers.add = function(name, opts, cb) {
-          if (typeof opts === 'function') {
-            cb = opts;
-            opts = null;
-          }
-
-          if (name === 'request') {
-            handlers.request = cb;
-          } else if (name === 'response') {
-            handlers.response = cb;
-          }
-        }
 
         var method = env.request.method.toLowerCase();
         var fn = router[key][method] ? router[key][method] 
           : router[key]['*'];
-        fn(handlers.add);
 
-        var duration = (+Date.now() - start);
-        env.printTrace('request routing', 'Duration (route request): ' + duration + 'ms', { duration: duration });
+        var handlers = new RouteHandlers();
+        fn(that._addRouteHandlers(handlers));
+
+        //var duration = (+Date.now() - start);
+        //env.printTrace('request routing', 'Duration (route request): ' + duration + 'ms', { duration: duration });
         
         env._routedResponseHandler = handlers.response || null;
         handlers.request(env, next);
@@ -335,6 +341,7 @@ Argo.prototype._routeRequestHandler = function(router) {
 };
 
 Argo.prototype._routeResponseHandler = function(router) {
+  var that = this;
   return function routeResponseHandler(env, next) {
     if (!env._routed) {
       if (env.response.statusCode !== 405) {
@@ -346,7 +353,7 @@ Argo.prototype._routeResponseHandler = function(router) {
     }
 
     if (env._routedResponseHandler) {
-      env.printTrace('response routing: (Cached)');
+      //env.printTrace('response routing: (Cached)');
       env.routedResponseHandler(env, next);
       return;
     } else if (env._routedResponseHandler === null) {
@@ -364,31 +371,16 @@ Argo.prototype._routeResponseHandler = function(router) {
       if (search.search(key) != -1 &&
           (router[key][env.request.method.toLowerCase()] ||
            router[key]['*'])) {
-        var handlers = {
-          request: null,
-          response: null
-        }
-        
-        handlers.add = function(name, opts, cb) {
-          if (typeof opts === 'function') {
-            cb = opts;
-            opts = null;
-          }
 
-          if (name === 'request') {
-            handlers.request = cb;
-          } else if (name === 'response') {
-            handlers.response = cb;
-          }
-        }
-
-        var duration = (+Date.now() - start);
-        env.printTrace('response routing', 'Duration (route response): ' + duration + 'ms', { duration: duration });
+        //var duration = (+Date.now() - start);
+        //env.printTrace('response routing', 'Duration (route response): ' + duration + 'ms', { duration: duration });
 
         var method = env.request.method.toLowerCase();
         var fn = router[key][method] ? router[key][method] 
           : router[key]['*'];
-        fn(handlers.add);
+
+        var handlers = new RouteHandlers();
+        fn(that._addRouteHandlers(handlers));
         
         if (handlers.response) {
           handlers.response(env, next);
@@ -445,7 +437,7 @@ Argo.prototype._target = function(env, next) {
 
       if (next) {
         var duration = (+Date.now() - start);
-        env.printTrace('target connection', 'Duration (target): ' + duration + 'ms', { duration: duration });
+        //env.printTrace('target connection', 'Duration (target): ' + duration + 'ms', { duration: duration });
         next(env);
       }
     });

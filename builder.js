@@ -3,6 +3,8 @@ var LinkedList = require('./linkedList');
 function Builder() {
   this._middleware = [];
   this._targetApp = null;
+  this._eventHandlerMap = new EventHandlerMap();
+  this._ebh = this._buildHandler(this._eventHandlerMap);
 }
 
 Builder.prototype.use = function(middleware) {
@@ -13,8 +15,12 @@ Builder.prototype.run = function(app) {
   this._targetApp = app;
 };
 
+function EventedBuildHandler(eventHandlerMap) {
+  this.eventHandlerMap = eventHandlerMap;
+}
+
 Builder.prototype._buildHandler = function(eventHandlerMap) {
-  return function(event, options, handler) {
+  return function eventedBuildHandler(event, options, handler) {
     if (typeof options === 'function') {
       handler = options;
       options = null;
@@ -25,23 +31,15 @@ Builder.prototype._buildHandler = function(eventHandlerMap) {
       options.hoist = options.hoist || false;
       options.sink = options.sink || false;
 
-      //var operation = options.hoist ? 'unshift' : 'push';
-
-      var operation = 'push';
-      if (options.hoist && event === 'response') {
-        event = 'preResponse';
-        operation = 'unshift';
-      } else if (options.sink && event === 'response') {
-        event = 'postResponse';
-        operation = 'push';
-      } else if (options.hoist && event === 'request') {
-        event = 'preRequest';
-        operation = 'unshift';
-      } else if (options.sink && event === 'request') {
-        event = 'postRequest';
-        operation = 'push';
+      var prefix = '';
+      if (options.hoist) {
+        prefix = 'pre';
+      } else if (options.sink) {
+        prefix = 'post';
       }
 
+      var operation = options.hoist ? 'unshift' : 'push';
+      var event = prefix + event;
       var m = eventHandlerMap[event];
 
       m[operation].call(m, handler);
@@ -50,59 +48,64 @@ Builder.prototype._buildHandler = function(eventHandlerMap) {
 };
 
 Builder.prototype.build = function() {
-  var eventHandlerMap = { 
-    request: [],
-    response: [],
-    preResponse: [],
-    postResponse: [],
-    preRequest: [],
-    postRequest: []
-  };
+  //var eventHandlerMap = new EventHandlerMap();
 
-  var handle = this._buildHandler(eventHandlerMap);
+  var handle = this._ebh;
   this._middleware.forEach(function(middleware) {
     middleware(handle);
   });
 
   var pipeline = new LinkedList();
   this._targetApp = this._targetApp || function(env, next) { next(env); };
-  var handlers = eventHandlerMap.preRequest.concat(
-      eventHandlerMap.request,
-      eventHandlerMap.postRequest,
+  var handlers = this._eventHandlerMap.prerequest.concat(
+      this._eventHandlerMap.request,
+      this._eventHandlerMap.postrequest,
       this._targetApp,
-      eventHandlerMap.preResponse,
-      eventHandlerMap.response.reverse(),
-      eventHandlerMap.postResponse);
+      this._eventHandlerMap.preresponse,
+      this._eventHandlerMap.response.reverse(),
+      this._eventHandlerMap.postresponse);
 
   /*console.log('request:', eventHandlerMap.request.length);
-  console.log('preResponse:', eventHandlerMap.preResponse.length);
+  console.log('preresponse:', eventHandlerMap.preresponse.length);
   console.log('response', eventHandlerMap.response.length);
-  console.log('postResponse', eventHandlerMap.postResponse.length);*/
+  console.log('postresponse', eventHandlerMap.postresponse.length);*/
 
   handlers = handlers.slice(0).reverse();
 
   handlers.forEach(function(handler) {
-    pipeline.add(function(next) {
+    var obj = new LinkedList.Node(function(next) {
       return function(env) {
         handler(env, next);
       };
     });
+
+    pipeline.add(obj);
   });
 
   var node = pipeline.head();
 
-  var app = node.value;
+  var _app = new LinkedList.Node();
+  _app = node.value;
   while (node) {
-    app = node.value(app);
+    _app = node.value(_app);
     node = node.next;
   }
   
-  return app;
+  return _app;
 };
 
 Builder.prototype.call = function(env) {
   var app = this.build();
   app(env);
 };
+
+function EventHandlerMap() {
+  this.request = [];
+  this.response = [];
+  this.preresponse = [];
+  this.postresponse = [];
+  this.prerequest = [];
+  this.postrequest = [];
+}
 
 module.exports = Builder;

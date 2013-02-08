@@ -3,16 +3,18 @@ var LinkedList = module.exports = function() {
   this._head = null;
 };
 
-LinkedList.prototype.add = function(item) {
+LinkedList.prototype.add = function(node) {
   var lastItem = this._items[this._items.length - 1];
 
-  var obj = { value: item, next: null };
+  //var obj = { value: item, next: null };
+  //var obj = new LinkedList.Node();
+  //obj.value = item;
 
   if (lastItem) {
-    lastItem.next = obj;
+    lastItem.next = node;
   }
 
-  this._items.push(obj);
+  this._items.push(node);
 };
 
 LinkedList.prototype.head = function() {
@@ -22,3 +24,8 @@ LinkedList.prototype.head = function() {
 LinkedList.prototype.length = function() {
   return this._items.length;
 };
+
+LinkedList.Node = function(value) {
+  this.value = value;
+  this.next = null;
+}

@@ -6,7 +6,7 @@ var Runner = function() {};
 var numCPUs = require('os').cpus().length;
 
 Runner.prototype.listen = function(platform, port) {
-  /*if (cluster.isMaster) {
+  if (cluster.isMaster) {
     for (var i = 0; i < numCPUs; i++) {
       cluster.fork();
     }
@@ -14,7 +14,7 @@ Runner.prototype.listen = function(platform, port) {
     cluster.on('exit', function(worker, code, signal) {
       console.log('LOG: worker ' + worker.process.pid + ' died');
     });
-  } else*/ {
+  } else {
     var app = platform.build();
     var serverDomain = domain.create();
     serverDomain.run(function domainRunner() {
@@ -40,11 +40,22 @@ Runner.prototype.listen = function(platform, port) {
         });
         req.queryParams = {};
         res.headers = {};
-        var env = { request: req, response: res, target: {}, proxy: { pathSuffix: req.url } };
+        var env = new Environment();
+        env.request = req;
+        env.response = res;
+        env.target = {};
+        //var env = { request: req, response: res, target: {}, proxy: { pathSuffix: req.url } };
         app(env);
       }).listen(port);
     });
   }
 };
+
+function Environment() {
+  this.request = null;
+  this.response = null;
+  this.target = null;
+  this.proxy = null;
+}
 
 module.exports = new Runner();
