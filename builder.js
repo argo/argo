@@ -15,10 +15,6 @@ Builder.prototype.run = function(app) {
   this._targetApp = app;
 };
 
-function EventedBuildHandler(eventHandlerMap) {
-  this.eventHandlerMap = eventHandlerMap;
-}
-
 Builder.prototype._buildHandler = function(eventHandlerMap) {
   return function eventedBuildHandler(event, options, handler) {
     if (typeof options === 'function') {
@@ -94,10 +90,10 @@ Builder.prototype.build = function() {
   return _app;
 };
 
-Builder.prototype.call = function(env) {
+/*Builder.prototype.call = function(env) {
   var app = this.build();
   app(env);
-};
+};*/
 
 function EventHandlerMap() {
   this.request = [];

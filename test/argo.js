@@ -7,10 +7,6 @@ function Request() {
   this.headers = {};
 }
 
-Request.prototype.setHeader = function(k, v) { 
-  this.headers[k] = v;
-};
-
 function Response() {
   this.headers = {};
   this.statusCode = 0;
@@ -220,11 +216,6 @@ describe('Argo', function() {
           });
         })
         .route('/route', function(addHandler) {
-          addHandler('request', function(env, next) {
-            env.response.statusCode = 200;
-            env.response.body = 'Hello Route';
-            next(env);
-          });
         })
         .call(env);
     });
@@ -521,9 +512,7 @@ describe('Argo', function() {
       };
 
       argo()
-        .get('/sheep', function(addHandler) {
-          addHandler('request', function(env, next) { next(env); });
-        })
+        .get('/sheep', function(addHandler) { })
         .call(env);
     });
   });
@@ -539,16 +528,6 @@ describe('Argo', function() {
       _http.Agent = function() {};
       _http.IncomingMessage = function() {};
       _http.IncomingMessage.prototype = {};
-      _http.request = function(options, callback) {
-        var res = {
-          _rawHeaderNames: {
-            'x-stuff': 'X-Stuff'
-          }
-        }
-        res.headers = { 'X-Stuff': 'yep' };
-        callback(res);
-        return { end: function() {}};
-      };
 
       argo(_http)
         .use(function(addHandler) {
@@ -586,7 +565,6 @@ describe('Argo', function() {
       argo(_http)
         .target('http://argo:rocks@argotest')
         .call(env);
-        
     });
 
     it('copies raw headers to the response', function(done) {
