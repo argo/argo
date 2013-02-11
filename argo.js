@@ -3,11 +3,12 @@ var url = require('url');
 var Builder = require('./builder');
 var runner = require('./runner');
 
-var Argo = function() {
+var Argo = function(_http) {
   this._router = {};
   this.builder = new Builder();
+  this._http = _http || http;
 
-  var incoming = http.IncomingMessage.prototype;
+  var incoming = this._http.IncomingMessage.prototype;
   if (!incoming._modifiedHeaderLine) {
     var _addHeaderLine = incoming._addHeaderLine;
 
@@ -59,6 +60,12 @@ Argo.prototype.build = function(isNested) {
     }
   }
 
+  this.builder.use(function(addHandler) {
+    addHandler('request', function(env, next) {
+      env._http = that._http;
+      next(env);
+    });
+  });
   if (hasRoutes) {
     this.builder.use(function addRouteHandlers(handlers) { 
      that._route(that._router, handlers);
@@ -306,7 +313,12 @@ Argo.prototype._routeRequestHandler = function(router) {
         //env.printTrace('request routing', 'Duration (route request): ' + duration + 'ms', { duration: duration });
         
         env._routedResponseHandler = handlers.response || null;
-        handlers.request(env, next);
+
+        if (handlers.request) {
+          handlers.request(env, next);
+        } else {
+          next(env);
+        }
       }
     }
     
@@ -330,14 +342,14 @@ Argo.prototype._routeResponseHandler = function(router) {
 
     if (env._routedResponseHandler) {
       //env.printTrace('response routing: (Cached)');
-      env.routedResponseHandler(env, next);
+      env._routedResponseHandler(env, next);
       return;
     } else if (env._routedResponseHandler === null) {
       next(env);
       return;
     }
 
-    var start = +Date.now();
+    /*var start = +Date.now();
     var search = env.request.routeUri || env.request.url;
 
     // clear this for outer route scope
@@ -364,7 +376,7 @@ Argo.prototype._routeResponseHandler = function(router) {
           next(env);
         }
       }
-    }
+    }*/
   };
 };
 
@@ -375,6 +387,7 @@ Argo.prototype._route = function(router, handle) {
 
 Argo.prototype._target = function(env, next) {
   if (env.response._headerSent) {
+    next(env);
     return;
   }
   var start = +Date.now();
@@ -384,25 +397,25 @@ Argo.prototype._target = function(env, next) {
     options.method = env.request.method || 'GET';
 
     // TODO: Make Agent configurable.
-    options.agent = new http.Agent();
+    options.agent = new env._http.Agent();
     options.agent.maxSockets = 1024;
-
-    options.headers = env.request.headers;
-    options.headers['Connection'] = 'keep-alive';
-    options.headers['Host'] = options.hostname;
 
     var parsed = url.parse(env.target.url);
     options.hostname = parsed.hostname;
     options.port = parsed.port || 80;
     options.path = parsed.path;
 
+    options.headers = env.request.headers;
+    options.headers['Connection'] = 'keep-alive';
+    options.headers['Host'] = options.hostname;
+
     if (parsed.auth) {
       options.auth = parsed.auth;
     }
 
-    var req = http.request(options, function(res) {
+    var req = env._http.request(options, function(res) {
       for (var key in res.headers) {
-        headerName = res._rawHeaderNames[key] || key;
+        var headerName = res._rawHeaderNames[key] || key;
         env.response.setHeader(headerName, res.headers[key]);
       }
 
@@ -421,4 +434,4 @@ Argo.prototype._target = function(env, next) {
   }
 };
 
-module.exports = function() { return new Argo() };
+module.exports = function(_http) { return new Argo(_http) };
