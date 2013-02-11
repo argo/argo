@@ -41,19 +41,7 @@ describe('Argo', function() {
       assert.ok(http.IncomingMessage.prototype._modifiedHeaderLine);
     });
   });
-});
 
-describe('IncomingMessage', function() {
-  describe('#_addHeaderLine', function() {
-    it('saves raw header names', function() {
-      var incomingMessage = new http.IncomingMessage();
-      incomingMessage._addHeaderLine('Super-Duper', 'funtime');
-      assert.equal(incomingMessage._rawHeaderNames['super-duper'], 'Super-Duper');
-    });
-  });
-});
-
-describe('Argo', function() {
   describe('#include', function() {
     it('evaluates a package', function() {
       var mixin = {
@@ -569,15 +557,12 @@ describe('Argo', function() {
 
     it('copies raw headers to the response', function(done) {
       var env = _getEnv();
-      //var _request = http.request;
 
       env.request.method = 'GET';
       env.request.url = '/proxy';
       env.response.setHeader = function(name, value) {
         if (name.toLowerCase() === 'x-stuff') {
           assert(name, 'X-Stuff');
-          //http.request = _request;
-          //done();
         }
       };
       env.response.body = 'proxied!';
