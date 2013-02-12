@@ -70,8 +70,17 @@ Builder.prototype.build = function() {
 
   handlers.forEach(function(handler) {
     var obj = new LinkedList.Node(function(next) {
-      return function(env) {
+      var that = this;
+      return function(env, callback) {
+        /*console.log('-- start --');
+        console.log('next: ', next);
+        console.log('callback: ', callback);
+        console.log('-- end --');
+        if (callback) {
+          next(env);
+        }*/
         handler(env, next);
+        if (callback) that.next = callback;
       };
     });
 

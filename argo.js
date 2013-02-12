@@ -242,7 +242,30 @@ Argo.prototype.map = function(path, options, handler) {
   }
 
   var that = this;
-  var _handler = function(addHandler) {
+
+  function generateHandler() {
+    var argo = new Argo();
+    /*argo.use(function(addHandler) {
+      addHandler('response', next);
+    });*/
+
+    handler(argo);
+
+    var app = argo.build(true);
+
+    return function(addHandler) {
+      addHandler('request', function mapHandler(env, next) {
+        if (env.request.url[env.request.url.length - 1] === '/') {
+          env.request.url = env.request.url.substr(0, env.request.url.length - 1);
+        }
+        env.request.routeUri = env.request.url.substr(path.length) || '/';
+        app(env, function(env) {
+          next(env);
+        });
+      });
+    };
+  };
+  /*var _handler = function(addHandler) {
     addHandler('request', function mapHandler(env, next) {
       if (env.request.url[env.request.url.length - 1] === '/') {
         env.request.url = env.request.url.substr(0, env.request.url.length - 1);
@@ -258,9 +281,9 @@ Argo.prototype.map = function(path, options, handler) {
       var app = argo.build(true);
       app(env);
     });
-  };
+  };*/
 
-  return this.route(path, options, _handler);
+  return this.route(path, options, generateHandler());
 };
 
 Argo.prototype._addRouteHandlers = function(handlers) {
