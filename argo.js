@@ -182,6 +182,15 @@ Argo.prototype.build = function(isNested) {
     });
   }
 
+  if (isNested) {
+    this.builder.use(function(addHandler) {
+      addHandler('request', function(env) {
+        if (env.oncomplete) {
+          env.oncomplete(env);
+        }
+      });
+    });
+  }
   return this.builder.build();
 };
 
@@ -241,14 +250,8 @@ Argo.prototype.map = function(path, options, handler) {
     this._router[path] = {};
   }
 
-  var that = this;
-
   function generateHandler() {
     var argo = new Argo();
-    /*argo.use(function(addHandler) {
-      addHandler('response', next);
-    });*/
-
     handler(argo);
 
     var app = argo.build(true);
@@ -259,9 +262,8 @@ Argo.prototype.map = function(path, options, handler) {
           env.request.url = env.request.url.substr(0, env.request.url.length - 1);
         }
         env.request.routeUri = env.request.url.substr(path.length) || '/';
-        app(env, function(env) {
-          next(env);
-        });
+        env.oncomplete = function(env) { next(env); };
+        app(env);
       });
     };
   };
