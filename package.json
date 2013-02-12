@@ -3,9 +3,8 @@
   "version": "0.0.0",
   "description": "",
   "main": "argo.js",
-  "private": true,
   "directories": {
-    "example": "example"
+    "example": "example",
   },
   "scripts": {
     "test": "node_modules/.bin/mocha -R spec",
@@ -13,10 +12,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/apigee/argo.git"
+    "url": "git://github.com/argo/argo.git"
   },
   "author": "Kevin Swiber",
-  "license": "MIT",
   "readmeFilename": "README.md",
   "dependencies": {
     "node-uuid": "~1.4.0"
