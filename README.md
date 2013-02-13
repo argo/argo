@@ -26,10 +26,14 @@ argo()
   .listen(1337);
 ```
 
+```bash
+$ curl -i http://localhost:1337/forecastrss?w=2467861
+```
+
 ## Install
 
 ```bash
-$ npm install argo
+$ npm install argo-server
 ```
 
 ## Usage
