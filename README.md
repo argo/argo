@@ -19,6 +19,7 @@ argo()
   .use(function(addHandler) {
     addHandler('response', function(env, next) {
       env.response.setHeader('Access-Control-Allow-Origin', '*');
+      next(env);
     });
   })
   .target('http://weather.yahooapis.com')
