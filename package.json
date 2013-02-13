@@ -4,8 +4,9 @@
   "description": "",
   "main": "argo.js",
   "directories": {
-    "example": "example",
+    "example": "example"
   },
+  "license": "MIT",
   "scripts": {
     "test": "node_modules/.bin/mocha -R spec",
     "coverage": "bin/_coverage"
