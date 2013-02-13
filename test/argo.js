@@ -30,7 +30,8 @@ function _getEnv() {
   return { 
     request: new Request(),
     response: new Response(),
-    target: {}
+    target: {},
+    argo: {}
   };
 }
 

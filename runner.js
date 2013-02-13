@@ -44,6 +44,7 @@ Runner.prototype.listen = function(platform, port) {
         env.request = req;
         env.response = res;
         env.target = {};
+        env.argo = {};
         //var env = { request: req, response: res, target: {}, proxy: { pathSuffix: req.url } };
         app(env);
       }).listen(port);
@@ -56,6 +57,7 @@ function Environment() {
   this.response = null;
   this.target = null;
   this.proxy = null;
+  this.argo = null;
 }
 
 module.exports = new Runner();

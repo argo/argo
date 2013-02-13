@@ -62,7 +62,7 @@ Argo.prototype.build = function(isNested) {
 
   this.builder.use(function(addHandler) {
     addHandler('request', function(env, next) {
-      env._http = that._http;
+      env.argo._http = that._http;
       next(env);
     });
   });
@@ -182,6 +182,15 @@ Argo.prototype.build = function(isNested) {
     });
   }
 
+  if (isNested) {
+    this.builder.use(function(addHandler) {
+      addHandler('request', function(env) {
+        if (env.argo.oncomplete) {
+          env.argo.oncomplete(env);
+        }
+      });
+    });
+  }
   return this.builder.build();
 };
 
@@ -241,8 +250,24 @@ Argo.prototype.map = function(path, options, handler) {
     this._router[path] = {};
   }
 
-  var that = this;
-  var _handler = function(addHandler) {
+  function generateHandler() {
+    var argo = new Argo();
+    handler(argo);
+
+    var app = argo.build(true);
+
+    return function(addHandler) {
+      addHandler('request', function mapHandler(env, next) {
+        if (env.request.url[env.request.url.length - 1] === '/') {
+          env.request.url = env.request.url.substr(0, env.request.url.length - 1);
+        }
+        env.request.routeUri = env.request.url.substr(path.length) || '/';
+        env.argo.oncomplete = function(env) { next(env); };
+        app(env);
+      });
+    };
+  };
+  /*var _handler = function(addHandler) {
     addHandler('request', function mapHandler(env, next) {
       if (env.request.url[env.request.url.length - 1] === '/') {
         env.request.url = env.request.url.substr(0, env.request.url.length - 1);
@@ -258,9 +283,9 @@ Argo.prototype.map = function(path, options, handler) {
       var app = argo.build(true);
       app(env);
     });
-  };
+  };*/
 
-  return this.route(path, options, _handler);
+  return this.route(path, options, generateHandler());
 };
 
 Argo.prototype._addRouteHandlers = function(handlers) {
@@ -286,7 +311,7 @@ function RouteHandlers() {
 Argo.prototype._routeRequestHandler = function(router) {
   var that = this;
   return function routeRequestHandler(env, next) {
-    env._routed = false;
+    env.argo._routed = false;
     //var start = +Date.now();
     var search = env.request.routeUri || env.request.url;
     for (var key in router) {
@@ -300,7 +325,7 @@ Argo.prototype._routeRequestHandler = function(router) {
       if (search.search(key) != -1 &&
           (router[key][env.request.method.toLowerCase()] ||
            router[key]['*'])) {
-        env._routed = true;
+        env.argo._routed = true;
 
         var method = env.request.method.toLowerCase();
         var fn = router[key][method] ? router[key][method] 
@@ -312,7 +337,7 @@ Argo.prototype._routeRequestHandler = function(router) {
         //var duration = (+Date.now() - start);
         //env.printTrace('request routing', 'Duration (route request): ' + duration + 'ms', { duration: duration });
         
-        env._routedResponseHandler = handlers.response || null;
+        env.argo._routedResponseHandler = handlers.response || null;
 
         if (handlers.request) {
           handlers.request(env, next);
@@ -322,7 +347,7 @@ Argo.prototype._routeRequestHandler = function(router) {
       }
     }
     
-    if (!env._routed) {
+    if (!env.argo._routed) {
       next(env);
     }
   };
@@ -331,7 +356,7 @@ Argo.prototype._routeRequestHandler = function(router) {
 Argo.prototype._routeResponseHandler = function(router) {
   var that = this;
   return function routeResponseHandler(env, next) {
-    if (!env._routed) {
+    if (!env.argo._routed) {
       if (env.response.statusCode !== 405) {
         env.response.statusCode = 404;
       }
@@ -340,11 +365,11 @@ Argo.prototype._routeResponseHandler = function(router) {
       return;
     }
 
-    if (env._routedResponseHandler) {
+    if (env.argo._routedResponseHandler) {
       //env.printTrace('response routing: (Cached)');
-      env._routedResponseHandler(env, next);
+      env.argo._routedResponseHandler(env, next);
       return;
-    } else if (env._routedResponseHandler === null) {
+    } else if (env.argo._routedResponseHandler === null) {
       next(env);
       return;
     }
@@ -397,7 +422,7 @@ Argo.prototype._target = function(env, next) {
     options.method = env.request.method || 'GET';
 
     // TODO: Make Agent configurable.
-    options.agent = new env._http.Agent();
+    options.agent = new env.argo._http.Agent();
     options.agent.maxSockets = 1024;
 
     var parsed = url.parse(env.target.url);
@@ -413,7 +438,7 @@ Argo.prototype._target = function(env, next) {
       options.auth = parsed.auth;
     }
 
-    var req = env._http.request(options, function(res) {
+    var req = env.argo._http.request(options, function(res) {
       for (var key in res.headers) {
         var headerName = res._rawHeaderNames[key] || key;
         env.response.setHeader(headerName, res.headers[key]);
