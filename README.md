@@ -1,6 +1,6 @@
 # argo
 
-Build reverse HTTP proxies, API Gateways and more!
+Argo is an extensible, asynchronous API proxy and server.
 
 argo offers:
 
