@@ -1,6 +1,6 @@
 # argo
 
-Build HTTP servers that scale.
+Build reverse HTTP proxies, API Gateways and more!
 
 argo offers:
 
