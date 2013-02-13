@@ -1,5 +1,5 @@
 {
-  "name": "argo",
+  "name": "argo-server",
   "version": "0.0.0",
   "description": "",
   "main": "argo.js",

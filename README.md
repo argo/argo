@@ -13,7 +13,7 @@ argo offers:
 Adding Cross-Origin Resource Sharing to an API You Don't Control
 
 ```javascript
-var argo = require('argo');
+var argo = require('argo-server');
 
 argo()
   .use(function(addHandler) {
