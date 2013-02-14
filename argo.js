@@ -50,7 +50,7 @@ Argo.prototype.target = function(url) {
   });
 };
 
-Argo.prototype._bufferBody = function(stream) {
+Argo.prototype._bufferBody = function(stream, parent) {
   return function(callback) {
     var buf = [];
     var len = 0;
@@ -72,7 +72,7 @@ Argo.prototype._bufferBody = function(stream) {
         body = buf.join('');
       }
 
-      stream.body = body;
+      parent.body = body;
 
       callback(null, body);
     });
@@ -126,7 +126,7 @@ Argo.prototype.build = function() {
   // spooler
   that.builder.use(function bufferRequest(handle) {
     handle('request', { hoist: true }, function(env, next) {
-      env.request.getBody = that._bufferBody(env.request);
+      env.request.getBody = that._bufferBody(env.request, env.request);
       next(env);
     });
 
@@ -136,7 +136,7 @@ Argo.prototype.build = function() {
         return;
       }
 
-      env.response.getBody = that._bufferBody(env.response);
+      env.response.getBody = that._bufferBody(env.target.response, env.response);
       next(env);
     });
   });
