@@ -25,15 +25,3 @@ argo()
       });
   })
   .listen(process.env.PORT || 3000);
-
-  console.log(process.pid);
-
-/*var memwatch = require('memwatch');
-memwatch.on('stats', function(d) {
-  console.log('postgc:', d);
-});
-
-memwatch.on('leak', function(d) {
-  console.log('LEAK:', d);
-  process.exit(0);
-});*/
