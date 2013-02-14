@@ -44,8 +44,6 @@ Builder.prototype._buildHandler = function(eventHandlerMap) {
 };
 
 Builder.prototype.build = function() {
-  //var eventHandlerMap = new EventHandlerMap();
-
   var handle = this._ebh;
   this._middleware.forEach(function(middleware) {
     middleware(handle);
@@ -60,11 +58,6 @@ Builder.prototype.build = function() {
       this._eventHandlerMap.preresponse,
       this._eventHandlerMap.response.reverse(),
       this._eventHandlerMap.postresponse);
-
-  /*console.log('request:', eventHandlerMap.request.length);
-  console.log('preresponse:', eventHandlerMap.preresponse.length);
-  console.log('response', eventHandlerMap.response.length);
-  console.log('postresponse', eventHandlerMap.postresponse.length);*/
 
   handlers = handlers.slice(0).reverse();
 
@@ -89,11 +82,6 @@ Builder.prototype.build = function() {
   
   return _app;
 };
-
-/*Builder.prototype.call = function(env) {
-  var app = this.build();
-  app(env);
-};*/
 
 function EventHandlerMap() {
   this.request = [];

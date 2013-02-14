@@ -12,7 +12,9 @@ argo()
   .map('/web', function(web) {
     web 
       .use(function(addHandler) {
+        console.log('000YEAHBUDDYDOINIT');
         addHandler('response', function(env, next) {
+          console.log('YEAHBUDDYDOINIT');
           env.response.headers['X-Stuff'] = 'Yep';
           next(env);
         });
@@ -25,15 +27,3 @@ argo()
       });
   })
   .listen(process.env.PORT || 3000);
-
-  console.log(process.pid);
-
-/*var memwatch = require('memwatch');
-memwatch.on('stats', function(d) {
-  console.log('postgc:', d);
-});
-
-memwatch.on('leak', function(d) {
-  console.log('LEAK:', d);
-  process.exit(0);
-});*/
