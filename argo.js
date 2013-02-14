@@ -84,7 +84,7 @@ Argo.prototype.embed = function() {
 
   this.builder.run(this._target);
   this.builder.use(function(addHandler) {
-    addHandler('request', function(env) {
+    addHandler('response', { sink: true }, function(env) {
       if (env.argo.oncomplete) {
         env.argo.oncomplete(env);
       }

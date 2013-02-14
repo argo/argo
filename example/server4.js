@@ -12,9 +12,7 @@ argo()
   .map('/web', function(web) {
     web 
       .use(function(addHandler) {
-        console.log('000YEAHBUDDYDOINIT');
         addHandler('response', function(env, next) {
-          console.log('YEAHBUDDYDOINIT');
           env.response.headers['X-Stuff'] = 'Yep';
           next(env);
         });
