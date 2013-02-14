@@ -184,7 +184,7 @@ Argo.prototype.build = function(isNested) {
 
   if (isNested) {
     this.builder.use(function(addHandler) {
-      addHandler('request', function(env) {
+      addHandler('response', { sink: true }, function(env) {
         if (env.argo.oncomplete) {
           env.argo.oncomplete(env);
         }
