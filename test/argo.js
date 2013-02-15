@@ -253,6 +253,36 @@ describe('Argo', function() {
   });
 
   describe('request buffering', function() {
+    it('only buffers once', function(done) {
+      var env = _getEnv();
+      env.target.response = new EventEmitter();
+      env.response = new EventEmitter();
+
+      argo()
+        .use(function(addHandler) {
+          addHandler('response', function(env, next) {
+            assert.equal(env.response.body, 'Hello Buffered Request!');
+            env.response.getBody(function(err, body) {
+              assert.equal(body.toString(), 'Hello Buffered Request!');
+              done();
+            });
+          });
+        })
+        .use(function(addHandler) {
+          addHandler('response', function(env, next) {
+            env.response.getBody(function(err, body) {
+              assert.equal(body.toString(), 'Hello Buffered Request!');
+              next(env);
+            });
+          });
+        })
+        .call(env);
+
+      env.target.response.emit('data', new Buffer('Hello '));
+      env.target.response.emit('data', new Buffer('Buffered '));
+      env.target.response.emit('data', new Buffer('Request!'));
+      env.target.response.emit('end');
+    });
     describe('when emitting Buffers', function() {
       it('returns a full representation of the request body', function(done) {
         var env = _getEnv();
@@ -301,6 +331,37 @@ describe('Argo', function() {
   });
 
   describe('response buffering', function() {
+    it('only buffers once', function(done) {
+      var env = _getEnv();
+      env.target.response = new EventEmitter();
+      env.response = new EventEmitter();
+
+      argo()
+        .use(function(addHandler) {
+          addHandler('response', function(env, next) {
+            assert.equal(env.response.body, 'Hello Buffered Response!');
+            env.response.getBody(function(err, body) {
+              assert.equal(body.toString(), 'Hello Buffered Response!');
+              done();
+            });
+          });
+        })
+        .use(function(addHandler) {
+          addHandler('response', function(env, next) {
+            env.response.getBody(function(err, body) {
+              assert.equal(body.toString(), 'Hello Buffered Response!');
+              next(env);
+            });
+          });
+        })
+        .call(env);
+
+      env.target.response.emit('data', new Buffer('Hello '));
+      env.target.response.emit('data', new Buffer('Buffered '));
+      env.target.response.emit('data', new Buffer('Response!'));
+      env.target.response.emit('end');
+    });
+
     describe('when emitting Buffers', function() {
       it('returns a full representation of the response body', function(done) {
         var env = _getEnv();
@@ -311,7 +372,7 @@ describe('Argo', function() {
           .use(function(addHandler) {
             addHandler('response', function(env, next) {
               env.response.getBody(function(err, body) {
-                assert.equal(body.toString(), 'Hello Buffered Request!');
+                assert.equal(body.toString(), 'Hello Buffered Response!');
                 done();
               });
             });
@@ -320,7 +381,7 @@ describe('Argo', function() {
 
         env.target.response.emit('data', new Buffer('Hello '));
         env.target.response.emit('data', new Buffer('Buffered '));
-        env.target.response.emit('data', new Buffer('Request!'));
+        env.target.response.emit('data', new Buffer('Response!'));
         env.target.response.emit('end');
       });
     });
@@ -335,7 +396,7 @@ describe('Argo', function() {
           .use(function(addHandler) {
             addHandler('response', function(env, next) {
               env.response.getBody(function(err, body) {
-                assert.equal(body.toString(), 'Hello Buffered Request!');
+                assert.equal(body.toString(), 'Hello Buffered Response!');
                 done();
               });
             });
@@ -344,7 +405,7 @@ describe('Argo', function() {
 
         env.target.response.emit('data', 'Hello ');
         env.target.response.emit('data', 'Buffered ');
-        env.target.response.emit('data', 'Request!');
+        env.target.response.emit('data', 'Response!');
         env.target.response.emit('end');
       });
     });
