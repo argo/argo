@@ -98,72 +98,75 @@ OAuth2.prototype.authorization = function() {
 OAuth2.prototype.authorize = function(env, next) {
   // TODO: Verify all parameters exist.
   // If not, return an error.
-  var requestBody = querystring.parse(env.request.body.toString());
 
-  var passedState = decodeURIComponent(requestBody.state);
+  var that = this;
+  env.request.getBody(function(err, body) {
+    var requestBody = querystring.parse(body.toString());
 
-  var decipher = crypto.createDecipher('aes128', new Buffer('PASS_AUTH_REQUEST_STATE'));
+    var passedState = decodeURIComponent(requestBody.state);
 
-  var decrypted = decipher.update(passedState, 'base64', 'utf8');
-  decrypted += decipher.final('utf8');
-  var paramsString = decrypted;
-  var params = JSON.parse(paramsString);
+    var decipher = crypto.createDecipher('aes128', new Buffer('PASS_AUTH_REQUEST_STATE'));
 
-  var responseType = params.response_type;
-  var clientId = params.client_id;
-  var redirectUri = params.redirect_uri;
-  var scope = params.scope;
-  var state = params.state;
+    var decrypted = decipher.update(passedState, 'base64', 'utf8');
+    decrypted += decipher.final('utf8');
+    var paramsString = decrypted;
+    var params = JSON.parse(paramsString);
 
-  if (this._supportedGrantTypes.indexOf('authorization_code') === -1 &&
-      this._supportedGrantTypes.indexOf('implicit') === -1) {
-    //TODO: Return error.
-    // /cb?error=unsupported_response_type
-    
-        console.log('not valid for authorization');
-    return;
-  }
+    var responseType = params.response_type;
+    var clientId = params.client_id;
+    var redirectUri = params.redirect_uri;
+    var scope = params.scope;
+    var state = params.state;
 
-  var impliedGrantType;
-  switch (responseType) {
-    case 'code':
-      impliedGrantType = 'authorization_code';
-      break;
-    case 'token':
-      impliedGrantType = 'implicit';
-      break;
-  }
-
-  var tokenStrategy = this._tokenStrategies[this._supportedTokenTypes[impliedGrantType]];
-
-  var verification = {
-    clientId: clientId,
-    responseType: responseType,
-    grantType: impliedGrantType,
-    redirectUri: redirectUri,
-    generateCode: this._generateCode,
-    tokenStrategy: tokenStrategy
-  };
-
-  env.oauth.options.clientStrategy.verifyAuthRequest(verification, function(err, res) {
-    if (err || !res.verified) {
-      console.log(err);
-      env.response.writeHead(500);
-      env.response.end();
+    if (that._supportedGrantTypes.indexOf('authorization_code') === -1 &&
+        that._supportedGrantTypes.indexOf('implicit') === -1) {
+      //TODO: Return error.
+      // /cb?error=unsupported_response_type
+      
       return;
     }
 
-    var parsedRedirectUri = url.parse(redirectUri);
-    var redirectionQuerystring = querystring.parse(parsedRedirectUri.query);
+    var impliedGrantType;
+    switch (responseType) {
+      case 'code':
+        impliedGrantType = 'authorization_code';
+        break;
+      case 'token':
+        impliedGrantType = 'implicit';
+        break;
+    }
 
-    redirectionQuerystring.code = res.code;
-    redirectionQuerystring.state = state;
+    var tokenStrategy = that._tokenStrategies[that._supportedTokenTypes[impliedGrantType]];
 
-    parsedRedirectUri.search = '?' + querystring.stringify(redirectionQuerystring);
-    parsedRedirectUri.path = parsedRedirectUri.pathname + parsedRedirectUri.search;
+    var verification = {
+      clientId: clientId,
+      responseType: responseType,
+      grantType: impliedGrantType,
+      redirectUri: redirectUri,
+      generateCode: that._generateCode,
+      tokenStrategy: tokenStrategy
+    };
 
-    env.response.writeHead(302, 'Found', { 'Location': url.format(parsedRedirectUri) });
-    env.response.end('');
+    env.oauth.options.clientStrategy.verifyAuthRequest(verification, function(err, res) {
+      if (err || !res.verified) {
+        console.log(err);
+        env.response.writeHead(500);
+        env.response.end();
+        return;
+      }
+
+      var parsedRedirectUri = url.parse(redirectUri);
+      var redirectionQuerystring = querystring.parse(parsedRedirectUri.query);
+
+      redirectionQuerystring.code = res.code;
+      redirectionQuerystring.state = state;
+
+      parsedRedirectUri.search = '?' + querystring.stringify(redirectionQuerystring);
+      parsedRedirectUri.path = parsedRedirectUri.pathname + parsedRedirectUri.search;
+
+      env.response.writeHead(302, 'Found', { 'Location': url.format(parsedRedirectUri) });
+      env.response.end('');
+    });
   });
 };
 
@@ -195,57 +198,55 @@ OAuth2.prototype.accessToken = function() {
     addHandler('request', function(env, next) {
       var that = env.oauth;
       that.options.clientStrategy.authenticate()(env, function(env) {
-        env.trace('OAuth2 Access Token Request', function() {
-          if (!env.request.body) {
-            env.response.writeHead(400);
+        if (!env.request.body) {
+          env.response.writeHead(400);
+          env.response.end();
+          return;
+        }
+        //var qs = url.parse(env.request.url).query;
+        var params = querystring.parse(env.request.body.toString());
+        
+        var grantType = params.grant_type;
+        var clientId = params.client_id;
+        var redirectUri = params.redirect_uri;
+        var code = params.code;
+
+        //if (grantType === 'authorization_code') grantType = 'code';
+
+        var tokenStrategy = that._tokenStrategies[that._supportedTokenTypes[grantType]];
+        var options = {
+          grantType: grantType,
+          clientId: clientId,
+          code: code,
+          redirectUri: redirectUri,
+          tokenStrategy: tokenStrategy
+        };
+
+        that.options.clientStrategy.validateAccessTokenRequest(options, function(err, res) {
+          if (err) {
+            console.log(err);
+            env.response.writeHead(500);
             env.response.end();
             return;
           }
-          //var qs = url.parse(env.request.url).query;
-          var params = querystring.parse(env.request.body.toString());
-          
-          var grantType = params.grant_type;
-          var clientId = params.client_id;
-          var redirectUri = params.redirect_uri;
-          var code = params.code;
+          if (res.validated) {
+            var body = res.body.toString();
 
-          //if (grantType === 'authorization_code') grantType = 'code';
+            var headers = {
+              'Content-Type': res.contentType,
+              'Content-Length': body.length,
+              'Cache-Control': 'no-store',
+              'Pragma': 'no-cache'
+            };
 
-          var tokenStrategy = that._tokenStrategies[that._supportedTokenTypes[grantType]];
-          var options = {
-            grantType: grantType,
-            clientId: clientId,
-            code: code,
-            redirectUri: redirectUri,
-            tokenStrategy: tokenStrategy
-          };
-
-          that.options.clientStrategy.validateAccessTokenRequest(options, function(err, res) {
-            if (err) {
-              console.log(err);
-              env.response.writeHead(500);
-              env.response.end();
-              return;
-            }
-            if (res.validated) {
-              var body = res.body.toString();
-
-              var headers = {
-                'Content-Type': res.contentType,
-                'Content-Length': body.length,
-                'Cache-Control': 'no-store',
-                'Pragma': 'no-cache'
-              };
-
-              /*env.response.statusCode = 200;
-              env.response.headers = headers;
-              env.response.body = body;*/
-              env.response.writeHead(200, headers);
-              env.response.end(body);
-            }
-          });
-        });     
-      });
+            /*env.response.statusCode = 200;
+            env.response.headers = headers;
+            env.response.body = body;*/
+            env.response.writeHead(200, headers);
+            env.response.end(body);
+          }
+        });
+      });     
     });
   };
 };

@@ -3,15 +3,13 @@ var DOMParser = require('xmldom').DOMParser;
 
 module.exports = function(addHandler) {
   addHandler('request', function(env, next) {
-    env.trace('forecast request', function() {
-      var regex = /\/([0-9]+)\.json/;
-      var result = regex.exec(env.request.url);
+    var regex = /\/([0-9]+)\.json/;
+    var result = regex.exec(env.request.url);
 
-      var woeid = result ? result[1] : '2467861' /* Palo Alto, CA */;
-      var parsed = url.parse(env.target.url);
-      parsed.pathname = '/forecastrss?w=' + woeid;
-      env.target.url = url.format(parsed);
-    });
+    var woeid = result ? result[1] : '2467861' /* Palo Alto, CA */;
+    var parsed = url.parse(env.target.url);
+    parsed.pathname = '/forecastrss?w=' + woeid;
+    env.target.url = url.format(parsed);
 
     next(env);
   });
@@ -19,10 +17,8 @@ module.exports = function(addHandler) {
   addHandler('response', function(env, next) {
     env.response.setHeader('Content-Type', 'application/json;charset=UTF-8');
     env.response.getBody(function(err, body) {
-      env.trace('forecast response', function() {
-        var json = xmlToJson(env.response.body);
-        env.response.body = JSON.stringify(json);
-      });
+      var json = xmlToJson(body.toString());
+      env.response.body = JSON.stringify(json);
       next(env);
     });
   });

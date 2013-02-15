@@ -15,18 +15,21 @@ InMemoryClientStrategy.prototype.authenticate = function() {
     var clientSecret;
 
     if (that.options.authStrategy === 'params') {
-      if (!env.request.body) {
-        that._unauthorized(env);
-        return;
-      }
-      var params = querystring.parse(env.request.body.toString());
-      if (params.client_id && params.client_secret) {
-        clientId = params.client_id;
-        clientSecret = params.client_secret;
-      } else {
-        that._unauthorized(env);
-        return;
-      }
+      env.request.getBody(function(err, body) {
+        if (!body) {
+          that._unauthorized(env);
+          return;
+        }
+        var params = querystring.parse(body.toString());
+        if (params.client_id && params.client_secret) {
+          clientId = params.client_id;
+          clientSecret = params.client_secret;
+          that._sendAuthResponse(clientId, clientSecret, env, next);
+        } else {
+          that._unauthorized(env);
+          return;
+        }
+      });
     } else if (that.options.authStrategy === 'basic') {
       var header = env.request.headers['authorization'];
       if (!header || header.split(' ')[0] !== 'Basic') {
@@ -36,31 +39,34 @@ InMemoryClientStrategy.prototype.authenticate = function() {
       if (credentials[0] && credentials[1]) {
         clientId = credentials[0];
         clientSecret = credentials[1];
+        that._sendAuthResponse(clientId, clientSecret, env, next);
       } else {
         that._unauthorized(env);
         return;
       }
     }
-
-    if (!clientId || !clientSecret) {
-      that._unauthorized(env);
-      return;
-    }
-
-    var isAuthenticated = false;
-
-    that.clients.forEach(function(client) {
-      if (client.id === clientId && client.secret === clientSecret) {
-        isAuthenticated = true;
-      }
-    });
-
-    if (isAuthenticated) {
-      next(env);
-    } else {
-      that._unauthorized(env);
-    }
   };
+};
+
+InMemoryClientStrategy.prototype._sendAuthResponse = function(clientId, clientSecret, env, next) {
+  if (!clientId || !clientSecret) {
+    this._unauthorized(env);
+    return;
+  }
+
+  var isAuthenticated = false;
+
+  this.clients.forEach(function(client) {
+    if (client.id === clientId && client.secret === clientSecret) {
+      isAuthenticated = true;
+    }
+  });
+
+  if (isAuthenticated) {
+    next(env);
+  } else {
+    this._unauthorized(env);
+  }
 };
 
 InMemoryClientStrategy.prototype._unauthorized = function(env) {

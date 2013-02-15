@@ -9,22 +9,22 @@ InMemoryUserStrategy.prototype.authorize = function() {
   var that = this;
   return function(addHandler) {
     addHandler('request', function(env, next) {
-      env.trace('/authorize', function() {
-        if (env.request.method === 'GET') {
-          var authRequest = env.oauth.getAuthRequestState(env);
-          var body = '<html><body><form method="POST">' +
-                     'Username: <input name="username"/><br/>' +
-                     'Password: <input type="password" name="password"/><br/>' +
-                     '<input type="submit" value="Login">' +
-                     '<input type="hidden" name="state" value="' +
-                     encodeURIComponent(authRequest) + '"/></form></html>';
+      if (env.request.method === 'GET') {
+        var authRequest = env.oauth.getAuthRequestState(env);
+        var body = '<html><body><form method="POST">' +
+                   'Username: <input name="username"/><br/>' +
+                   'Password: <input type="password" name="password"/><br/>' +
+                   '<input type="submit" value="Login">' +
+                   '<input type="hidden" name="state" value="' +
+                   encodeURIComponent(authRequest) + '"/></form></html>';
 
-          var headers = { 'Content-Type': 'text/html', 'Content-Length': body.length };
+        var headers = { 'Content-Type': 'text/html', 'Content-Length': body.length };
 
-          env.response.writeHead(200, headers);
-          env.response.end(body);
-        } else if (env.request.method === 'POST') {
-          var loginInfo = qs.parse(env.request.body.toString());
+        env.response.writeHead(200, headers);
+        env.response.end(body);
+      } else if (env.request.method === 'POST') {
+        env.request.getBody(function(err, body) {
+          var loginInfo = qs.parse(body.toString());
 
           var username = loginInfo.username;
           var password = loginInfo.password;
@@ -45,9 +45,9 @@ InMemoryUserStrategy.prototype.authorize = function() {
           } else {
             env.oauth.deny(env, next);
           }
-        }
-      });
-    })
+        });
+      }
+    });
   };
 };
 

@@ -52,8 +52,13 @@ Argo.prototype.target = function(url) {
 
 Argo.prototype._bufferBody = function(stream, parent) {
   return function(callback) {
+    if (parent.body) {
+      callback(null, parent.body);
+      return;
+    }
     var buf = [];
     var len = 0;
+
     stream.on('data', function(chunk) {
       buf.push(chunk);
       len += chunk.length;
