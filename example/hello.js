@@ -1,4 +1,3 @@
-var agent = require('webkit-devtools-agent');
 var argo = require('../');
 
 argo()
@@ -12,5 +11,3 @@ argo()
     });
   })
   .listen(process.env.PORT || 3000);
-
-console.log(process.pid);
