@@ -158,6 +158,27 @@ argo()
   })
 ```
 
+### get(path, addHandlerFunction)
+### post(path, addHandlerFunction)
+### put(path, addHandlerFunction)
+### del(path, addHandlerFunction)
+### options(path, addHandlerFunction)
+### trace(path, addHandlerFunction)
+
+Method filters built on top of `route`.
+
+Example:
+
+```javascript
+argo()
+  .get('/puppies', function(addHandler) {
+    addHandler('request', function(env, next) {
+      env.responseBody = JSON.stringify([{name: 'Sparky', breed: 'Fox Terrier' }]);
+      next(env);
+    });
+  })
+```
+
 ### map(path, [options], argoSegmentFunction)
 
 `map` is used to delegate control to sub-Argo instances based on a request URI path.
