@@ -84,17 +84,19 @@ $ npm install argo-server
 
 ### use(addHandlerFunction)
 
-The `addHandlerFunction` is used to set up request and response handlers.  
+Parameters:
 
-`addHandler` has the signature `addHandler(type, [options], handler)`.
+`addHandler` has the signature `addHandler(type, [options], handler)`. The `addHandlerFunction` is used to set up request and response handlers.  
+
+#### `addHandler` Parameters:
 
 `type`: `'request'` or `'response'`
 
 `options`: Mostly used for internal purposes.  Optional.
 
-`handler`: A request or response handler.
+`handler`: A request or response handler.  `handler` has the signature `handler(env, next)`.
 
-`handler` has the signature `handler(env, next)`.
+#### `handler` Parameters:
 
 `env` is an environment context that is passed to every handler.
 
@@ -122,6 +124,8 @@ Alias for `include(package)`.
 
 `target` is used for proxying requests to a backend server.
 
+Parameters:
+
 `uri`: a string pointing to the target URI.
 
 Example:
@@ -133,8 +137,12 @@ argo()
 
 ### route(path, [options], addHandlerFunction)
 
+Parameters:
+
 `path`: a string used to match HTTP Request URI path.
+
 `options`: an object with a `methods` property to filter HTTP methods (e.g., `{ methods: ['GET','POST'] }`).  Optional.
+
 `addHandlerFunction`: Same as in `use`.
 
 Example:
@@ -154,8 +162,12 @@ argo()
 
 `map` is used to delegate control to sub-Argo instances based on a request URI path.
 
+Parameters:
+
 `path`: a string used to match the HTTP Request URI path.
+
 `options`: an object with a `methods` property to filter HTTP methods (e.g., `{ methods: ['GET','POST'] }`).  Optional.
+
 `argoSegmentFunction`: a function that is passed an instance of `argo` for additional setup.
 
 Example:
@@ -170,6 +182,8 @@ argo()
 ```
 
 ### include(package)
+
+Parameters:
 
 `package`: An object that contains a `package` property.
 
@@ -192,6 +206,12 @@ var superPackage = function(argo) {
 argo()
   .include(superPackage)
 ```
+
+### listen(port)
+
+Parameters:
+
+`port`: A port on which the server should listen.
 
 ## Tests
 
