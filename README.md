@@ -9,28 +9,24 @@ Argo is:
 * Modular using handlers for request and response pipelines.
 * Extensible using a package system.
 
-Argo as an API server:
+As an API server:
 
 * Route requests to handlers.
 * Separate resources into modules.
 
-Argo as an API reverse proxy:
+As a reverse proxy:
 
 * Route requests to backend servers.
 * Transform HTTP messages on the fly.
 * Add OAuth 2.0 support to an existing API.
 * Create a RESTful API façade over legacy systems.
 
-On the Roadmap:
 
-* HTTP Caching Support
-* Collapsed Forwarding
-* Parameterized Routing
-* Rate Limiting
+## Examples
 
-## Example
+### Adding Cross-Origin Resource Sharing
 
-Adding Cross-Origin Resource Sharing
+Setup the server:
 
 ```javascript
 var argo = require('argo-server');
@@ -46,8 +42,36 @@ argo()
   .listen(1337);
 ```
 
+Make a request:
+
 ```bash
 $ curl -i http://localhost:1337/forecastrss?w=2467861
+```
+
+### Serving an API Request
+
+Setup the server: 
+
+```javascript
+var argo = require('argo-server');
+
+argo()
+  .get('/dogs', function(addHandler) {
+    addHandler('request', function(env, next) {
+      env.response.statusCode = 200;
+      env.response.headers = { 'Content-Type': 'application/json' };
+      env.responseBody = JSON.stringify(['Alfred', 'Rover', 'Dino']);
+
+      next(env);
+    });
+  })
+  .listen(1337);
+```
+
+Make a request:
+
+```bash
+$ curl -i http://localhost:1337/dogs
 ```
 
 ## Install
@@ -77,6 +101,13 @@ Test Coverage:
 ```bash
 $ npm run-script coverage
 ```
+
+## On the Roadmap
+
+* HTTP Caching Support
+* Collapsed Forwarding
+* Parameterized Routing
+* Rate Limiting
 
 ## License
 MIT
