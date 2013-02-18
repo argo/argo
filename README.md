@@ -150,11 +150,13 @@ Example:
 ```javascript
 argo()
   .route('/greeting', function(addHandler) {
-    env.response.statusCode = 200;
-    env.response.headers = { 'Content-Type': 'text/plain' };
-    env.responseBody = 'Hello World!';
-
-    next(env);
+    addHandler('request, function(env, next) {
+      env.response.statusCode = 200;
+      env.response.headers = { 'Content-Type': 'text/plain' };
+      env.responseBody = 'Hello World!';
+ 
+      next(env);
+    });
   })
 ```
 
