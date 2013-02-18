@@ -1,16 +1,36 @@
-# argo
+# Argo
 
-Argo is an extensible, asynchronous API proxy and server.
+An extensible, asynchronous HTTP reverse proxy and origin server.
 
-argo offers:
+Argo is:
 
-* Asynchronous request and response pipelines.
-* Reverse proxy to backend servers.
-* Extensible package system.
+* An API-focused HTTP server.
+* A reverse proxy to manage and modify HTTP requests and responses.
+* Modular using handlers for request and response pipelines.
+* Extensible using a package system.
+
+Argo as an API server:
+
+* Route requests to handlers.
+* Separate resources into modules.
+
+Argo as an API reverse proxy:
+
+* Route requests to backend servers.
+* Transform HTTP messages on the fly.
+* Add OAuth 2.0 support to an existing API.
+* Create a RESTful API façade over legacy systems.
+
+On the Roadmap:
+
+* HTTP Caching Support
+* Collapsed Forwarding
+* Parameterized Routing
+* Rate Limiting
 
 ## Example
 
-Adding Cross-Origin Resource Sharing to an API You Don't Control
+Adding Cross-Origin Resource Sharing
 
 ```javascript
 var argo = require('argo-server');
