@@ -6,7 +6,7 @@ var Runner = function() {};
 var numCPUs = require('os').cpus().length;
 
 Runner.prototype.listen = function(platform, port) {
-  if (cluster.isMaster) {
+  /*if (cluster.isMaster) {
     for (var i = 0; i < numCPUs; i++) {
       cluster.fork();
     }
@@ -14,7 +14,7 @@ Runner.prototype.listen = function(platform, port) {
     cluster.on('exit', function(worker, code, signal) {
       console.log('LOG: worker ' + worker.process.pid + ' died');
     });
-  } else {
+  } else*/ {
     var app = platform.build();
     var serverDomain = domain.create();
     serverDomain.run(function domainRunner() {

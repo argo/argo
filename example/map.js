@@ -5,7 +5,7 @@ argo()
   .use(cors)
   .get('/outer', function(addHandler) {
     addHandler('request', function(env, next) {
-      env.response.body = 'Outer scope!';
+      env.responseBody = 'Outer scope!';
       next(env);
     });
   })
@@ -19,7 +19,7 @@ argo()
       })
       .get('/greeting', function(addHandler) {
         addHandler('request', function(env, next) {
-          env.response.body = 'Hello, world!';
+          env.responseBody = 'Hello, world!';
           next(env);
         }); 
       });

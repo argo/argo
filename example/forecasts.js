@@ -16,9 +16,9 @@ module.exports = function(addHandler) {
 
   addHandler('response', function(env, next) {
     env.response.setHeader('Content-Type', 'application/json;charset=UTF-8');
-    env.response.getBody(function(err, body) {
+    env.getResponseBody(function(err, body) {
       var json = xmlToJson(body.toString());
-      env.response.body = JSON.stringify(json);
+      env.responseBody = JSON.stringify(json);
       next(env);
     });
   });

@@ -50,10 +50,10 @@ Argo.prototype.target = function(url) {
   });
 };
 
-Argo.prototype._bufferBody = function(stream, parent) {
+Argo.prototype._bufferBody = function(stream, parent, prop) {
   return function(callback) {
-    if (parent.body) {
-      callback(null, parent.body);
+    if (parent[prop]) {
+      callback(null, parent[prop]);
       return;
     }
     var buf = [];
@@ -77,7 +77,7 @@ Argo.prototype._bufferBody = function(stream, parent) {
         body = buf.join('');
       }
 
-      parent.body = body;
+      parent[prop] = body;
 
       callback(null, body);
     });
@@ -131,7 +131,7 @@ Argo.prototype.build = function() {
   // spooler
   that.builder.use(function bufferRequest(handle) {
     handle('request', { hoist: true }, function(env, next) {
-      env.request.getBody = that._bufferBody(env.request, env.request);
+      env.getRequestBody = that._bufferBody(env.request, env, 'requestBody');
       next(env);
     });
 
@@ -141,7 +141,7 @@ Argo.prototype.build = function() {
         return;
       }
 
-      env.response.getBody = that._bufferBody(env.target.response, env.response);
+      env.getResponseBody = that._bufferBody(env.target.response, env, 'responseBody');
       next(env);
     });
   });
@@ -151,8 +151,8 @@ Argo.prototype.build = function() {
   // response ender
   that.builder.use(function(handle) {
     handle('response', { sink: true }, function(env, next) {
-      if (!env.response.body && env.response.getBody) {
-        env.response.getBody(function(err, body) {
+      if (!env.responseBody && env.getResponseBody) {
+        env.getResponseBody(function(err, body) {
           var body = body || '';
           env.response.setHeader('Content-Length', body.length); 
           env.response.writeHead(env.response.statusCode, env.response.headers);
@@ -160,7 +160,7 @@ Argo.prototype.build = function() {
         });
         return;
       }
-      var body = env.response.body || '';
+      var body = env.responseBody || '';
       env.response.setHeader('Content-Length', body.length); 
       env.response.writeHead(env.response.statusCode, env.response.headers);
       env.response.end(body);

@@ -100,7 +100,7 @@ OAuth2.prototype.authorize = function(env, next) {
   // If not, return an error.
 
   var that = this;
-  env.request.getBody(function(err, body) {
+  env.getRequestBody(function(err, body) {
     var requestBody = querystring.parse(body.toString());
 
     var passedState = decodeURIComponent(requestBody.state);
@@ -198,13 +198,13 @@ OAuth2.prototype.accessToken = function() {
     addHandler('request', function(env, next) {
       var that = env.oauth;
       that.options.clientStrategy.authenticate()(env, function(env) {
-        if (!env.request.body) {
+        if (!env.requestBody) {
           env.response.writeHead(400);
           env.response.end();
           return;
         }
         //var qs = url.parse(env.request.url).query;
-        var params = querystring.parse(env.request.body.toString());
+        var params = querystring.parse(env.requestBody.toString());
         
         var grantType = params.grant_type;
         var clientId = params.client_id;

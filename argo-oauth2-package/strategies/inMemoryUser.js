@@ -23,7 +23,7 @@ InMemoryUserStrategy.prototype.authorize = function() {
         env.response.writeHead(200, headers);
         env.response.end(body);
       } else if (env.request.method === 'POST') {
-        env.request.getBody(function(err, body) {
+        env.getRequestBody(function(err, body) {
           var loginInfo = qs.parse(body.toString());
 
           var username = loginInfo.username;

@@ -15,7 +15,7 @@ InMemoryClientStrategy.prototype.authenticate = function() {
     var clientSecret;
 
     if (that.options.authStrategy === 'params') {
-      env.request.getBody(function(err, body) {
+      env.getRequestBody(function(err, body) {
         if (!body) {
           that._unauthorized(env);
           return;
