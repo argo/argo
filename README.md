@@ -48,7 +48,7 @@ Make a request:
 $ curl -i http://localhost:1337/forecastrss?w=2467861
 ```
 
-### Serving an API Request
+### Serving an API Response 
 
 Setup the server: 
 
@@ -82,11 +82,116 @@ $ npm install argo-server
 
 ## Usage
 
-### .use(1)
-### .target(1)
-### .route(2)
-### .map(2)
-### .include(1)
+### use(addHandlerFunction)
+
+The `addHandlerFunction` is used to set up request and response handlers.  
+
+`addHandler` has the signature `addHandler(type, [options], handler)`.
+
+`type`: `'request'` or `'response'`
+
+`options`: Mostly used for internal purposes.  Optional.
+
+`handler`: A request or response handler.
+
+`handler` has the signature `handler(env, next)`.
+
+`env` is an environment context that is passed to every handler.
+
+`next` is a reference to the next function in the pipeline.
+
+When the handler is complete and wishes to pass to the next function in the pipeline, it must call `next(env)`.
+
+It's implemented like so:
+
+```javascript
+argo()
+  .use(function(addHandler) {
+    addHandler('request', function(env, next) {
+      env.request.headers['X-Custom-Header'] = 'Yippee!';
+      next(env);
+    });
+  })
+```
+
+### use(package)
+
+Alias for `include(package)`.
+
+### target(uri)
+
+`target` is used for proxying requests to a backend server.
+
+`uri`: a string pointing to the target URI.
+
+Example:
+
+```javascript
+argo()
+  .target('http://weather.yahooapis.com')
+```
+
+### route(path, [options], addHandlerFunction)
+
+`path`: a string used to match HTTP Request URI path.
+`options`: an object with a `methods` property to filter HTTP methods (e.g., `{ methods: ['GET','POST'] }`).  Optional.
+`addHandlerFunction`: Same as in `use`.
+
+Example:
+
+```javascript
+argo()
+  .route('/greeting', function(addHandler) {
+    env.response.statusCode = 200;
+    env.response.headers = { 'Content-Type': 'text/plain' };
+    env.responseBody = 'Hello World!';
+
+    next(env);
+  })
+```
+
+### map(path, [options], argoSegmentFunction)
+
+`map` is used to delegate control to sub-Argo instances based on a request URI path.
+
+`path`: a string used to match the HTTP Request URI path.
+`options`: an object with a `methods` property to filter HTTP methods (e.g., `{ methods: ['GET','POST'] }`).  Optional.
+`argoSegmentFunction`: a function that is passed an instance of `argo` for additional setup.
+
+Example:
+
+```javascript
+argo()
+  .map('/payments', function(server) {
+    server
+      .use(oauth)
+      .target('http://backend_payment_server');
+  })
+```
+
+### include(package)
+
+`package`: An object that contains a `package` property.
+
+The `package` property is a function that takes an argo instance as a paramter and returns an object that contains a `name` and an `install` function.
+
+Example:
+
+```javascript
+var superPackage = function(argo) {
+  return {
+    name: 'Super Package',
+    install: function() {
+      argo
+        .use(oauth)
+        .route('/super', require('./super'));
+    }
+  };
+};
+
+argo()
+  .include(superPackage)
+```
 
 ## Tests
 
