@@ -2,16 +2,21 @@ var assert = require('assert');
 var EventEmitter = require('events').EventEmitter;
 var http = require('http');
 var argo = require('../');
+var util = require('util');
 
 function Request() {
   this.headers = {};
+  EventEmitter.call(this);
 }
+util.inherits(Request, EventEmitter);
 
 function Response() {
   this.headers = {};
   this.statusCode = 0;
   this.body = '';
+  EventEmitter.call(this);
 }
+util.inherits(Response, EventEmitter);
 
 Response.prototype.setHeader = function(k, v) {
   this.headers[k] = v;

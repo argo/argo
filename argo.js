@@ -377,6 +377,14 @@ Argo.prototype._target = function(env, next) {
       }
     });
 
+    env.getRequestBody(function(err, body) {
+      if (body) {
+        req.write(body);
+      }
+
+      req.end();
+    });
+
     req.end();
   } else {
     next(env);
