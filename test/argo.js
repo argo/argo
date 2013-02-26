@@ -220,18 +220,61 @@ describe('Argo', function() {
       env.request.method = 'GET';
 
       argo()
-        .route('/route', function(addHandler) {
-          addHandler('request', function(env, next) {
-            assert.ok(false);
-            done();
-          });
-        })
+        .route('/route', function(addHandler) { })
         .route('/route/that/matches', function(addHandler) {
           addHandler('request', function(env, next) {
             assert.equal(env.request.url, '/route/that/matches/first');
             done();
           });
         })
+      .call(env);
+    });
+
+    it('returns / match on root request', function(done) {
+      var env = _getEnv();
+      env.request.url = '/';
+      env.request.method = 'GET';
+
+      argo()
+        .route('/route', function(addHandler) { })
+        .route('/', function(addHandler) {
+          addHandler('request', function(env, next) {
+            assert.equal(env.request.url, '/');
+            done();
+          });
+        })
+      .call(env);
+    });
+
+    it('returns 404 when no match exists', function(done) {
+      var env = _getEnv();
+      env.request.url = '/404';
+      env.request.method = 'GET';
+
+      argo()
+        .use(function(addHandler) {
+          addHandler('response', function(env, next) {
+            assert(env.response.statusCode, 404);
+            done();
+          });
+        })
+        .route('/', function(addHandler) { })
+      .call(env);
+    });
+
+    it('returns wildcard when no match exists', function(done) {
+      var env = _getEnv();
+      env.request.url = '/404';
+      env.request.method = 'GET';
+
+      argo()
+        .route('*', function(addHandler) {
+          addHandler('request', function(env, next) {
+            assert(env.request.url, '/404');
+            done();
+          });
+        })
+        .route('/', function(addHandler) { })
       .call(env);
     });
   });
@@ -633,13 +676,20 @@ describe('Argo', function() {
         assert.equal(options.path, '/proxy');
         assert.equal(options.auth, 'argo:rocks');
 
-        return { write: function() {}, end: done };
+        return {
+          write: function(str) {
+            assert.equal(str, 'body');
+            done();
+          },
+          end: function() {}
+        };
       };
 
       argo(_http)
         .target('http://argo:rocks@argotest')
         .call(env);
 
+      env.request.emit('data', 'body');
       env.request.emit('end');
     });
 

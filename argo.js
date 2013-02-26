@@ -300,11 +300,19 @@ Argo.prototype._routeRequestHandler = function(router) {
     var search = env.request.routeUri || env.request.url;
 
     var routerKey;
-    that._routerKeys.forEach(function(key) {
-      if (!routerKey && search.search(key) !== -1) {
-        routerKey = key;
-      }
-    });
+    if (search === '/' && that._router['/']) {
+      routerKey = '/';
+    } else {
+      that._routerKeys.forEach(function(key) {
+        if (!routerKey && key !== '*' && search.search(key) !== -1 && key !== '/') {
+          routerKey = key;
+        }
+      });
+    }
+
+    if (!routerKey && that._router['*']) {
+      routerKey = '*';
+    }
 
     if (routerKey &&
         (!router[routerKey][env.request.method.toLowerCase()] &&
