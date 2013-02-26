@@ -612,14 +612,14 @@ describe('Argo', function() {
         assert.equal(options.path, '/proxy');
         assert.equal(options.auth, 'argo:rocks');
 
-        return { end: function() { 
-          done();
-        } };
+        return { write: function() {}, end: done };
       };
 
       argo(_http)
         .target('http://argo:rocks@argotest')
         .call(env);
+
+      env.request.emit('end');
     });
 
     it('copies raw headers to the response', function(done) {
@@ -652,6 +652,8 @@ describe('Argo', function() {
       argo(_http)
         .target('http://google.com')
         .call(env);
+
+      env.request.emit('end');
     });
   });
 });
