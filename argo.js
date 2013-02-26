@@ -5,6 +5,7 @@ var runner = require('./runner');
 
 var Argo = function(_http) {
   this._router = {};
+  this._routerKeys = [];
   this.builder = new Builder();
   this._http = _http || http;
 
@@ -191,6 +192,17 @@ Argo.prototype.route = function(path, options, handlers) {
     that._router[path][method.toLowerCase()] = handlers;
   });
 
+  that._routerKeys.push(path);
+  that._routerKeys.sort(function(a, b) {
+    if (a.length > b.length) {
+      return -1;
+    } else if (a.length < b.length) {
+      return 1;
+    }
+
+    return 0;
+  });
+
   return this;
 };
 
@@ -286,34 +298,41 @@ Argo.prototype._routeRequestHandler = function(router) {
   return function routeRequestHandler(env, next) {
     env.argo._routed = false;
     var search = env.request.routeUri || env.request.url;
-    for (var key in router) {
-      if (search.search(key) !== -1 &&
-          (!router[key][env.request.method.toLowerCase()] &&
-           !router[key]['*'])) {
-        env.response.statusCode = 405;
+
+    var routerKey;
+    that._routerKeys.forEach(function(key) {
+      if (!routerKey && search.search(key) !== -1) {
+        routerKey = key;
+      }
+    });
+
+    if (routerKey &&
+        (!router[routerKey][env.request.method.toLowerCase()] &&
+         !router[routerKey]['*'])) {
+      env.response.statusCode = 405;
+      next(env);
+      return;
+    }
+
+    if (routerKey &&
+        (router[routerKey][env.request.method.toLowerCase()] ||
+         router[routerKey]['*'])) {
+      env.argo._routed = true;
+
+      var method = env.request.method.toLowerCase();
+      var fn = router[routerKey][method] ? router[routerKey][method] 
+        : router[routerKey]['*'];
+
+      var handlers = new RouteHandlers();
+      fn(that._addRouteHandlers(handlers));
+
+      env.argo._routedResponseHandler = handlers.response || null;
+
+      if (handlers.request) {
+        handlers.request(env, next);
+      } else {
         next(env);
         return;
-      }
-      if (search.search(key) != -1 &&
-          (router[key][env.request.method.toLowerCase()] ||
-           router[key]['*'])) {
-        env.argo._routed = true;
-
-        var method = env.request.method.toLowerCase();
-        var fn = router[key][method] ? router[key][method] 
-          : router[key]['*'];
-
-        var handlers = new RouteHandlers();
-        fn(that._addRouteHandlers(handlers));
-
-        env.argo._routedResponseHandler = handlers.response || null;
-
-        if (handlers.request) {
-          handlers.request(env, next);
-        } else {
-          next(env);
-          return;
-        }
       }
     }
     

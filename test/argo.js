@@ -213,6 +213,27 @@ describe('Argo', function() {
         })
         .call(env);
     });
+
+    it('returns the longest possible match first', function(done) {
+      var env = _getEnv();
+      env.request.url = '/route/that/matches/first';
+      env.request.method = 'GET';
+
+      argo()
+        .route('/route', function(addHandler) {
+          addHandler('request', function(env, next) {
+            assert.ok(false);
+            done();
+          });
+        })
+        .route('/route/that/matches', function(addHandler) {
+          addHandler('request', function(env, next) {
+            assert.equal(env.request.url, '/route/that/matches/first');
+            done();
+          });
+        })
+      .call(env);
+    });
   });
 
   describe('#map', function() {
