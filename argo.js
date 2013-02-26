@@ -92,7 +92,7 @@ Argo.prototype.embed = function() {
     addHandler('response', { sink: true }, function(env) {
       if (env.argo.oncomplete) {
         env.argo.oncomplete(env);
-      }
+      };
     });
   });
 
@@ -234,11 +234,25 @@ Argo.prototype.map = function(path, options, handler) {
 
     return function(addHandler) {
       addHandler('request', function mapHandler(env, next) {
+        var oldRouted = env.argo._routed;
+        env.argo._routed = false;
+
+        var oldRoutedResponseHandler = env.argo._routedResponseHandler;
+        env.argo._routedResponseHandler = null;
+
         if (env.request.url[env.request.url.length - 1] === '/') {
           env.request.url = env.request.url.substr(0, env.request.url.length - 1);
         }
         env.request.routeUri = env.request.url.substr(path.length) || '/';
-        env.argo.oncomplete = function(env) { next(env); };
+
+        // TODO: See if this can work in a response handler here.
+        env.argo.oncomplete = function(env) {
+          env.argo._routed = oldRouted;
+          env.argo._routedResponseHandler = oldRoutedResponseHandler;
+          env.request.routeUri = null;
+          next(env);
+        };
+
         app(env);
       });
     };
@@ -298,6 +312,7 @@ Argo.prototype._routeRequestHandler = function(router) {
           handlers.request(env, next);
         } else {
           next(env);
+          return;
         }
       }
     }
@@ -384,8 +399,6 @@ Argo.prototype._target = function(env, next) {
 
       req.end();
     });
-
-    req.end();
   } else {
     next(env);
   }
