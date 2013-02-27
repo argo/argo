@@ -9,18 +9,68 @@ var Argo = function(_http) {
   this.builder = new Builder();
   this._http = _http || http;
 
+  var that = this;
   var incoming = this._http.IncomingMessage.prototype;
-  if (!incoming._modifiedHeaderLine) {
+
+  if (!incoming._argoModified) {
     var _addHeaderLine = incoming._addHeaderLine;
 
-    incoming._modifiedHeaderLine = true;
     incoming._addHeaderLine = function(field, value) {
       this._rawHeaderNames = this._rawHeaderNames || {};
       this._rawHeaderNames[field.toLowerCase()] = field;
 
       _addHeaderLine.call(this, field, value);
     };
+
+    incoming.body = null;
+    incoming.getBody = that._getBody();
+    incoming.argoModified = true;
   }
+
+  var serverResponse = this._http.ServerResponse.prototype;
+
+  if (!serverResponse._argoModified) {
+    serverResponse.body = null;
+    serverResponse.getBody = that._getBody();
+    serverResponse.headers = {};
+
+    serverResponse._argoModified = true;
+  }
+};
+
+Argo.prototype._getBody = function() {
+  var that = this;
+  return function(callback) {
+    if (this.body) {
+      callback(null, this.body);
+      return;
+    }
+    var buf = [];
+    var len = 0;
+
+    this.on('data', function(chunk) {
+      buf.push(chunk);
+      len += chunk.length;
+    });
+
+    this.on('end', function() {
+      var body;
+      if (buf.length && Buffer.isBuffer(buf[0])) {
+        body = new Buffer(len);
+        var i = 0;
+        buf.forEach(function(chunk) {
+          chunk.copy(body, i, 0, chunk.length);
+          i += chunk.length;
+        });
+      } else if (buf.length) {
+        body = buf.join('');
+      }
+
+      this.body = body;
+
+      callback(null, body);
+    });
+  };
 };
 
 Argo.prototype.include = function(mod) {
@@ -49,43 +99,6 @@ Argo.prototype.target = function(url) {
       next(env);
     });
   });
-};
-
-Argo.prototype._bufferBody = function(stream, parent, prop) {
-  return function(callback) {
-    console.log('buffer body');
-    if (parent[prop]) {
-      console.log('has body');
-      console.log(parent[prop]);
-      callback(null, parent[prop]);
-      return;
-    }
-    var buf = [];
-    var len = 0;
-
-    stream.on('data', function(chunk) {
-      buf.push(chunk);
-      len += chunk.length;
-    });
-
-    stream.on('end', function() {
-      var body;
-      if (buf.length && Buffer.isBuffer(buf[0])) {
-        body = new Buffer(len);
-        var i = 0;
-        buf.forEach(function(chunk) {
-          chunk.copy(body, i, 0, chunk.length);
-          i += chunk.length;
-        });
-      } else if (buf.length) {
-        body = buf.join('');
-      }
-
-      parent[prop] = body;
-
-      callback(null, body);
-    });
-  };
 };
 
 Argo.prototype.embed = function() {
@@ -133,9 +146,9 @@ Argo.prototype.build = function() {
   that.buildCore();
 
   // spooler
-  that.builder.use(function bufferRequest(handle) {
+  /*that.builder.use(function bufferRequest(handle) {
     handle('request', { hoist: true }, function(env, next) {
-      env.request.getBody = that._bufferBody(env.request._request, env.request, 'body');
+      env.request.getBody = that._bufferBody(env.request, env.request, 'body');
       next(env);
     });
 
@@ -145,29 +158,31 @@ Argo.prototype.build = function() {
         return;
       }
 
-      env.response.getBody = that._bufferBody(env.target.response, env.response, 'body');
+      //env.response.getBody = that._bufferBody(env.target.response, env.response, 'body');
       next(env);
     });
-  });
+  });*/
 
   that.builder.run(that._target);
 
   // response ender
   that.builder.use(function(handle) {
     handle('response', { sink: true }, function(env, next) {
-      console.log('in ender');
       if (!env.response.body && env.response.getBody) {
-        console.log('async getBody');
+        if (!env.target.response) {
+          env.response.setHeader('Content-Length', '0'); 
+          env.response.writeHead(env.response.statusCode, env.response.headers);
+          env.response.end();
+          return;
+        }
         env.response.getBody(function(err, body) {
           var body = body || '';
-          console.log(env.response);
           env.response.setHeader('Content-Length', body.length); 
           env.response.writeHead(env.response.statusCode, env.response.headers);
           env.response.end(body);
         });
         return;
       }
-      console.log('just ending');
       var body = env.response.body || '';
       env.response.setHeader('Content-Length', body.length); 
       env.response.writeHead(env.response.statusCode, env.response.headers);
@@ -385,7 +400,7 @@ Argo.prototype._route = function(router, handle) {
 };
 
 Argo.prototype._target = function(env, next) {
-  if (env.response._response._headerSent) {
+  if (env.response._headerSent) {
     next(env);
     return;
   }

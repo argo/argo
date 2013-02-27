@@ -51,7 +51,8 @@ Runner.prototype.listen = function(platform, port) {
 function Environment(request, response) {
   var that = this;
 
-  this.request = new Request(request);
+  this.request = request;
+  //this.request = new Request(request);
   /*this.request = {};
   this.request.__proto__ = http.IncomingMessage.prototype;
   this.request._request = request;
@@ -62,7 +63,8 @@ function Environment(request, response) {
     that.request[key] = request[key];
   });*/
 
-  this.response = new Response(response);
+  this.response = response;
+  //this.response = new Response(response);
   /*this.response.__proto__ = http.ServerResponse.prototype;
   this.response = {};
   this.response.__proto__ = http.ServerResponse.prototype;
@@ -99,9 +101,9 @@ function Response(response) {
 
   var that = this;
 
-  /*Object.keys(this._response).forEach(function(key) {
+  Object.keys(this._response).forEach(function(key) {
     that[key] = that._response[key];
-  });*/
+  });
 
   /*this.body = null;
   this.getBody = function() {};
@@ -125,6 +127,7 @@ Response.prototype.setHeader = function() {
 };
 
 Response.prototype.writeHead = function() {
+  console.log(arguments);
   return this._response.writeHead.apply(this._response, Array.prototype.slice.call(arguments));
 };
 
