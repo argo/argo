@@ -5,7 +5,7 @@ argo()
     addHandler('request', function(env, next) {
       env.response.statusCode = 200;
       env.response.setHeader('Content-Type', 'text/plain');
-      env.responseBody = 'Hello World';
+      env.response.body = 'Hello World';
 
       next(env);
     });

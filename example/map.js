@@ -5,7 +5,7 @@ argo()
   .use(cors)
   .get('/outer', function(addHandler) {
     addHandler('request', function(env, next) {
-      env.responseBody = 'Outer scope!';
+      env.response.body = 'Outer scope!';
       next(env);
     });
   })
@@ -13,13 +13,13 @@ argo()
     web 
       .use(function(addHandler) {
         addHandler('response', function(env, next) {
-          env.response.headers['X-Stuff'] = 'Yep';
+          env.response.setHeader('X-Stuff', 'Yep');
           next(env);
         });
       })
       .get('/greeting', function(addHandler) {
         addHandler('request', function(env, next) {
-          env.responseBody = 'Hello, world!';
+          env.response.body = 'Hello, world!';
           next(env);
         }); 
       });

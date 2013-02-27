@@ -1,22 +1,24 @@
 var assert = require('assert');
 var EventEmitter = require('events').EventEmitter;
+var fs = require('fs');
 var http = require('http');
+var Stream = require('stream');
 var argo = require('../');
 var util = require('util');
 
 function Request() {
   this.headers = {};
-  EventEmitter.call(this);
+  Stream.call(this);
 }
-util.inherits(Request, EventEmitter);
+util.inherits(Request, Stream);
 
 function Response() {
   this.headers = {};
   this.statusCode = 0;
   this.body = '';
-  EventEmitter.call(this);
+  Stream.call(this);
 }
-util.inherits(Response, EventEmitter);
+util.inherits(Response, Stream);
 
 Response.prototype.setHeader = function(k, v) {
   this.headers[k] = v;
@@ -43,8 +45,8 @@ function _getEnv() {
 describe('Argo', function() {
   describe('ctor', function() {
     it('alters http.IncomingMessage.prototype', function() {
-      argo();
-      assert.ok(http.IncomingMessage.prototype._modifiedHeaderLine);
+      argo(http);
+      assert.ok(http.IncomingMessage.prototype._argoModified);
     });
   });
 
@@ -324,14 +326,19 @@ describe('Argo', function() {
   describe('request buffering', function() {
     it('only buffers once', function(done) {
       var env = _getEnv();
-      env.target.response = new EventEmitter();
-      env.response = new EventEmitter();
+      env.request = new Request();
+      env.target.response = new Response();
+      env.response = new Response();
 
-      argo()
+      var _http = {};
+      _http.IncomingMessage = Request;
+      _http.ServerResponse = Response;
+
+      argo(_http)
         .use(function(addHandler) {
           addHandler('response', function(env, next) {
-            assert.equal(env.responseBody, 'Hello Buffered Request!');
-            env.getResponseBody(function(err, body) {
+            assert.equal(env.request.body, 'Hello Buffered Request!');
+            env.request.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Request!');
               done();
             });
@@ -339,7 +346,7 @@ describe('Argo', function() {
         })
         .use(function(addHandler) {
           addHandler('response', function(env, next) {
-            env.getResponseBody(function(err, body) {
+            env.request.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Request!');
               next(env);
             });
@@ -347,20 +354,24 @@ describe('Argo', function() {
         })
         .call(env);
 
-      env.target.response.emit('data', new Buffer('Hello '));
-      env.target.response.emit('data', new Buffer('Buffered '));
-      env.target.response.emit('data', new Buffer('Request!'));
-      env.target.response.emit('end');
+      env.request.emit('data', new Buffer('Hello '));
+      env.request.emit('data', new Buffer('Buffered '));
+      env.request.emit('data', new Buffer('Request!'));
+      env.request.emit('end');
     });
     describe('when emitting Buffers', function() {
       it('returns a full representation of the request body', function(done) {
         var env = _getEnv();
-        env.request = new EventEmitter();
+        env.request = new Request();
 
-        argo()
+        var _http = {};
+        _http.IncomingMessage = Request;
+        _http.ServerResponse = Response;
+
+        argo(_http)
           .use(function(addHandler) {
             addHandler('request', function(env, next) {
-              env.getRequestBody(function(err, body) {
+              env.request.getBody(function(err, body) {
                 assert.equal(body.toString(), 'Hello Buffered Request!');
                 done();
               });
@@ -378,12 +389,16 @@ describe('Argo', function() {
     describe('when emitting Strings', function() {
       it('returns a full representation of the request body', function(done) {
         var env = _getEnv();
-        env.request = new EventEmitter();
+        env.request = new Request();
 
-        argo()
+        var _http = {};
+        _http.IncomingMessage = Request;
+        _http.ServerResponse = Response;
+
+        argo(_http)
           .use(function(addHandler) {
             addHandler('request', function(env, next) {
-              env.getRequestBody(function(err, body) {
+              env.request.getBody(function(err, body) {
                 assert.equal(body.toString(), 'Hello Buffered Request!');
                 done();
               });
@@ -402,14 +417,18 @@ describe('Argo', function() {
   describe('response buffering', function() {
     it('only buffers once', function(done) {
       var env = _getEnv();
-      env.target.response = new EventEmitter();
-      env.response = new EventEmitter();
+      env.target.response = new Response();
+      env.response = new Response();
 
-      argo()
+      var _http = {};
+      _http.IncomingMessage = Request;
+      _http.ServerResponse = Response;
+
+      argo(_http)
         .use(function(addHandler) {
           addHandler('response', function(env, next) {
-            assert.equal(env.responseBody, 'Hello Buffered Response!');
-            env.getResponseBody(function(err, body) {
+            assert.equal(env.target.response.body, 'Hello Buffered Response!');
+            env.target.response.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Response!');
               done();
             });
@@ -417,7 +436,7 @@ describe('Argo', function() {
         })
         .use(function(addHandler) {
           addHandler('response', function(env, next) {
-            env.getResponseBody(function(err, body) {
+            env.target.response.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Response!');
               next(env);
             });
@@ -434,13 +453,17 @@ describe('Argo', function() {
     describe('when emitting Buffers', function() {
       it('returns a full representation of the response body', function(done) {
         var env = _getEnv();
-        env.target.response = new EventEmitter();
-        env.response = new EventEmitter();
+        env.target.response = new Response();
+        env.response = new Response();
 
-        argo()
+        var _http = {};
+        _http.IncomingMessage = Request;
+        _http.ServerResponse = Response;
+
+        argo(_http)
           .use(function(addHandler) {
             addHandler('response', function(env, next) {
-              env.getResponseBody(function(err, body) {
+              env.target.response.getBody(function(err, body) {
                 assert.equal(body.toString(), 'Hello Buffered Response!');
                 done();
               });
@@ -458,13 +481,17 @@ describe('Argo', function() {
     describe('when emitting Strings', function() {
       it('returns a full representation of the response body', function(done) {
         var env = _getEnv();
-        env.target.response = new EventEmitter();
-        env.response = new EventEmitter();
+        env.target.response = new Response();
+        env.response = new Response();
 
-        argo()
+        var _http = {};
+        _http.IncomingMessage = Request;
+        _http.ServerResponse = Response;
+
+        argo(_http)
           .use(function(addHandler) {
             addHandler('response', function(env, next) {
-              env.getResponseBody(function(err, body) {
+              env.target.response.getBody(function(err, body) {
                 assert.equal(body.toString(), 'Hello Buffered Response!');
                 done();
               });
@@ -481,10 +508,10 @@ describe('Argo', function() {
   });
 
   describe('response ender', function() {
-    it('sets a response body when env.responseBody is empty', function(done) {
+    it('sets a response body when env.response.body is empty', function(done) {
       var env = _getEnv();
-      env.target.response = new EventEmitter();
-      env.response = new EventEmitter();
+      env.target.response = new Response();
+      env.response = new Response();
       env.response.setHeader = function() {};
       env.response.writeHead = function() {};
       env.response.end = function(body) {
@@ -645,8 +672,8 @@ describe('Argo', function() {
 
       var _http = function() {};
       _http.Agent = function() {};
-      _http.IncomingMessage = function() {};
-      _http.IncomingMessage.prototype = {};
+      _http.IncomingMessage = Request;
+      _http.ServerResponse = Response;
 
       argo(_http)
         .use(function(addHandler) {
@@ -666,8 +693,8 @@ describe('Argo', function() {
 
       var _http = function() {};
       _http.Agent = function() {};
-      _http.IncomingMessage = function() {};
-      _http.IncomingMessage.prototype = {};
+      _http.IncomingMessage = Request;
+      _http.ServerResponse = Response;
       _http.request = function(options, callback) {
         assert.equal(options.method, 'GET');
         assert.equal(options.hostname, 'argotest');
@@ -703,12 +730,12 @@ describe('Argo', function() {
           assert(name, 'X-Stuff');
         }
       };
-      env.responseBody = 'proxied!';
+      env.response.body = 'proxied!';
 
       var _http = function() {};
       _http.Agent = function() {};
-      _http.IncomingMessage = function() {};
-      _http.IncomingMessage.prototype = {};
+      _http.IncomingMessage = Request;
+      _http.ServerResponse = Response;
       _http.request = function(options, callback) {
         var res = {
           _rawHeaderNames: {
@@ -727,4 +754,40 @@ describe('Argo', function() {
       env.request.emit('end');
     });
   });
+
+  /*describe('response serving', function() {
+    it('serves streams', function(done) {
+      var env = _getEnv();
+      env.request = new Request();
+      env.request.url = '/hello.txt';
+      env.request.method = 'GET';
+      env.response = new Response();
+
+      var filename = __dirname + '/hello.txt';
+      var stream = fs.createReadStream(filename);
+
+      var test = '';
+      env.response.on('data', function(chunk) {
+        console.log(chunk);
+        test += chunk.toString();
+      });
+
+      env.response.on('end', function() {
+        assert.equal('Hello, World!', test);
+        done();
+      });
+
+      argo()
+        .get('/hello.txt', function(addHandler) {
+          addHandler('request', function(env, next) {
+            console.log('executing route');
+            env.response.statusCode = 200;
+            env.response.headers['Content-Type'] = 'text/plain';
+            env.response.body = stream;
+            next(env);
+          });
+        })
+        .call(env);
+    });
+  });*/
 });

@@ -60,7 +60,7 @@ argo()
     addHandler('request', function(env, next) {
       env.response.statusCode = 200;
       env.response.headers = { 'Content-Type': 'application/json' };
-      env.responseBody = JSON.stringify(['Alfred', 'Rover', 'Dino']);
+      env.response.body = JSON.stringify(['Alfred', 'Rover', 'Dino']);
 
       next(env);
     });
@@ -153,7 +153,7 @@ argo()
     addHandler('request, function(env, next) {
       env.response.statusCode = 200;
       env.response.headers = { 'Content-Type': 'text/plain' };
-      env.responseBody = 'Hello World!';
+      env.response.body = 'Hello World!';
  
       next(env);
     });
@@ -175,7 +175,7 @@ Example:
 argo()
   .get('/puppies', function(addHandler) {
     addHandler('request', function(env, next) {
-      env.responseBody = JSON.stringify([{name: 'Sparky', breed: 'Fox Terrier' }]);
+      env.response.body = JSON.stringify([{name: 'Sparky', breed: 'Fox Terrier' }]);
       next(env);
     });
   })

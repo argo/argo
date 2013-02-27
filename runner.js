@@ -1,6 +1,8 @@
 var cluster = require('cluster');
 var domain = require('domain');
 var http = require('http');
+var util = require('util');
+
 var Runner = function() {};
 
 var numCPUs = require('os').cpus().length;
@@ -38,26 +40,18 @@ Runner.prototype.listen = function(platform, port) {
             requestDomain.dispose();
           }
         });
-        req.queryParams = {};
-        res.headers = {};
-        var env = new Environment();
-        env.request = req;
-        env.response = res;
-        env.target = {};
-        env.argo = {};
-        //var env = { request: req, response: res, target: {}, proxy: { pathSuffix: req.url } };
+        var env = new Environment(req, res);
         app(env);
       }).listen(port);
     });
   }
 };
 
-function Environment() {
-  this.request = null;
-  this.response = null;
-  this.target = null;
-  this.proxy = null;
-  this.argo = null;
+function Environment(request, response) {
+  this.request = request;
+  this.response = response;
+  this.target = {};
+  this.argo = {};
 }
 
 module.exports = new Runner();

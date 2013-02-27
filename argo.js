@@ -1,5 +1,6 @@
 var http = require('http');
 var url = require('url');
+var Stream = require('stream');
 var Builder = require('./builder');
 var runner = require('./runner');
 
@@ -9,18 +10,68 @@ var Argo = function(_http) {
   this.builder = new Builder();
   this._http = _http || http;
 
+  var that = this;
   var incoming = this._http.IncomingMessage.prototype;
-  if (!incoming._modifiedHeaderLine) {
+
+  if (!incoming._argoModified) {
     var _addHeaderLine = incoming._addHeaderLine;
 
-    incoming._modifiedHeaderLine = true;
     incoming._addHeaderLine = function(field, value) {
       this._rawHeaderNames = this._rawHeaderNames || {};
       this._rawHeaderNames[field.toLowerCase()] = field;
 
       _addHeaderLine.call(this, field, value);
     };
+
+    incoming.body = null;
+    incoming.getBody = that._getBody();
+    incoming._argoModified = true;
   }
+
+  var serverResponse = this._http.ServerResponse.prototype;
+  if (!serverResponse._argoModified) {
+
+    serverResponse.body = null;
+    serverResponse.getBody = that._getBody();
+    serverResponse.headers = {};
+
+    serverResponse._argoModified = true;
+  }
+};
+
+Argo.prototype._getBody = function() {
+  var that = this;
+  return function(callback) {
+    if (this.body) {
+      callback(null, this.body);
+      return;
+    }
+    var buf = [];
+    var len = 0;
+
+    this.on('data', function(chunk) {
+      buf.push(chunk);
+      len += chunk.length;
+    });
+
+    this.on('end', function() {
+      var body;
+      if (buf.length && Buffer.isBuffer(buf[0])) {
+        body = new Buffer(len);
+        var i = 0;
+        buf.forEach(function(chunk) {
+          chunk.copy(body, i, 0, chunk.length);
+          i += chunk.length;
+        });
+      } else if (buf.length) {
+        body = buf.join('');
+      }
+
+      this.body = body;
+
+      callback(null, body);
+    });
+  };
 };
 
 Argo.prototype.include = function(mod) {
@@ -49,40 +100,6 @@ Argo.prototype.target = function(url) {
       next(env);
     });
   });
-};
-
-Argo.prototype._bufferBody = function(stream, parent, prop) {
-  return function(callback) {
-    if (parent[prop]) {
-      callback(null, parent[prop]);
-      return;
-    }
-    var buf = [];
-    var len = 0;
-
-    stream.on('data', function(chunk) {
-      buf.push(chunk);
-      len += chunk.length;
-    });
-
-    stream.on('end', function() {
-      var body;
-      if (buf.length && Buffer.isBuffer(buf[0])) {
-        body = new Buffer(len);
-        var i = 0;
-        buf.forEach(function(chunk) {
-          chunk.copy(body, i, 0, chunk.length);
-          i += chunk.length;
-        });
-      } else if (buf.length) {
-        body = buf.join('');
-      }
-
-      parent[prop] = body;
-
-      callback(null, body);
-    });
-  };
 };
 
 Argo.prototype.embed = function() {
@@ -129,42 +146,42 @@ Argo.prototype.build = function() {
 
   that.buildCore();
 
-  // spooler
-  that.builder.use(function bufferRequest(handle) {
-    handle('request', { hoist: true }, function(env, next) {
-      env.getRequestBody = that._bufferBody(env.request, env, 'requestBody');
-      next(env);
-    });
-
-    handle('response', { hoist: true }, function bufferResponse(env, next) {
-      if (!env.target.response) {
-        next(env);
-        return;
-      }
-
-      env.getResponseBody = that._bufferBody(env.target.response, env, 'responseBody');
-      next(env);
-    });
-  });
-
   that.builder.run(that._target);
 
   // response ender
   that.builder.use(function(handle) {
     handle('response', { sink: true }, function(env, next) {
-      if (!env.responseBody && env.getResponseBody) {
-        env.getResponseBody(function(err, body) {
-          var body = body || '';
-          env.response.setHeader('Content-Length', body.length); 
+      if (env.response.body) {
+        var body = env.response.body;
+        if (typeof body === 'string') {
+          env.response.setHeader('Content-Length', body ? body.length : 0); 
           env.response.writeHead(env.response.statusCode, env.response.headers);
           env.response.end(body);
-        });
-        return;
+        } else if (body instanceof Stream) {
+          env.response.writeHead(env.response.statusCode, env.response.headers);
+          body.pipe(env.response);
+        } else if (typeof body === 'object') {
+          body = JSON.stringify(body);
+          env.response.setHeader('Content-Length', body ? body.length : 0); 
+          env.response.writeHead(env.response.statusCode, env.response.headers);
+          env.response.end(body);
+        }
+      } else {
+        if (env.response.headers['content-length'] && env.response.headers['content-length'] === '0') {
+          env.response.writeHead(env.response.statusCode, env.response.headers);
+          env.response.end();
+        } else if (env.target.response) {
+          env.target.response.getBody(function(err, body) {
+            env.response.setHeader('Content-Length', body ? body.length : 0); 
+            env.response.writeHead(env.response.statusCode, env.response.headers);
+            env.response.end(body);
+          });
+        } else {
+          env.response.setHeader('Content-Length', '0'); 
+          env.response.writeHead(env.response.statusCode, env.response.headers);
+          env.response.end();
+        }
       }
-      var body = env.responseBody || '';
-      env.response.setHeader('Content-Length', body.length); 
-      env.response.writeHead(env.response.statusCode, env.response.headers);
-      env.response.end(body);
     });
   });
 
@@ -378,7 +395,7 @@ Argo.prototype._route = function(router, handle) {
 };
 
 Argo.prototype._target = function(env, next) {
-  if (env.response._headerSent) {
+  if (env.response._headerSent || env.target.skip) {
     next(env);
     return;
   }
@@ -419,7 +436,7 @@ Argo.prototype._target = function(env, next) {
       }
     });
 
-    env.getRequestBody(function(err, body) {
+    env.request.getBody(function(err, body) {
       if (body) {
         req.write(body);
       }
