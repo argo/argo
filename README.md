@@ -60,7 +60,7 @@ argo()
     addHandler('request', function(env, next) {
       env.response.statusCode = 200;
       env.response.headers = { 'Content-Type': 'application/json' };
-      env.response.body = JSON.stringify(['Alfred', 'Rover', 'Dino']);
+      env.response.body = ['Alfred', 'Rover', 'Dino'];
 
       next(env);
     });
