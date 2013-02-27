@@ -28,8 +28,8 @@ var Argo = function(_http) {
   }
 
   var serverResponse = this._http.ServerResponse.prototype;
-
   if (!serverResponse._argoModified) {
+
     serverResponse.body = null;
     serverResponse.getBody = that._getBody();
     serverResponse.headers = {};
@@ -121,6 +121,7 @@ Argo.prototype.buildCore = function() {
 
   that.builder.use(function(addHandler) {
     addHandler('request', function(env, next) {
+      env.request.setEncoding('utf8');
       env.argo._http = that._http;
       next(env);
     });
@@ -145,48 +146,41 @@ Argo.prototype.build = function() {
 
   that.buildCore();
 
-  // spooler
-  /*that.builder.use(function bufferRequest(handle) {
-    handle('request', { hoist: true }, function(env, next) {
-      env.request.getBody = that._bufferBody(env.request, env.request, 'body');
-      next(env);
-    });
-
-    handle('response', { hoist: true }, function bufferResponse(env, next) {
-      if (!env.target.response) {
-        next(env);
-        return;
-      }
-
-      //env.response.getBody = that._bufferBody(env.target.response, env.response, 'body');
-      next(env);
-    });
-  });*/
-
   that.builder.run(that._target);
 
   // response ender
   that.builder.use(function(handle) {
     handle('response', { sink: true }, function(env, next) {
-      if (!env.response.body && env.response.getBody) {
-        if (!env.target.response) {
+      if (env.response.body) {
+        var body = env.response.body;
+        if (typeof body === 'string') {
+          env.response.setHeader('Content-Length', body ? body.length : 0); 
+          env.response.writeHead(env.response.statusCode, env.response.headers);
+          env.response.end(body);
+        } else if (body instanceof Stream) {
+          body.pipe(env.response);
+        } else if (typeof body === 'object') {
+          body = JSON.stringify(body);
+          env.response.setHeader('Content-Length', body ? body.length : 0); 
+          env.response.writeHead(env.response.statusCode, env.response.headers);
+          env.response.end(body);
+        }
+      } else {
+        if (env.response.headers['content-length'] && env.response.headers['content-length'] === '0') {
+          env.response.writeHead(env.response.statusCode, env.response.headers);
+          env.response.end();
+        } else if (env.target.response) {
+          env.target.response.getBody(function(err, body) {
+            env.response.setHeader('Content-Length', body ? body.length : 0); 
+            env.response.writeHead(env.response.statusCode, env.response.headers);
+            env.response.end(body);
+          });
+        } else {
           env.response.setHeader('Content-Length', '0'); 
           env.response.writeHead(env.response.statusCode, env.response.headers);
           env.response.end();
-          return;
         }
-        env.response.getBody(function(err, body) {
-          var body = body || '';
-          env.response.setHeader('Content-Length', body.length); 
-          env.response.writeHead(env.response.statusCode, env.response.headers);
-          env.response.end(body);
-        });
-        return;
       }
-      var body = env.response.body || '';
-      env.response.setHeader('Content-Length', body.length); 
-      env.response.writeHead(env.response.statusCode, env.response.headers);
-      env.response.end(body);
     });
   });
 
@@ -400,7 +394,7 @@ Argo.prototype._route = function(router, handle) {
 };
 
 Argo.prototype._target = function(env, next) {
-  if (env.response._headerSent) {
+  if (env.response._headerSent || env.target.skip) {
     next(env);
     return;
   }

@@ -13,13 +13,12 @@ argo()
     web 
       .use(function(addHandler) {
         addHandler('response', function(env, next) {
-          env.response.headers['X-Stuff'] = 'Yep';
+          env.response.setHeader('X-Stuff', 'Yep');
           next(env);
         });
       })
       .get('/greeting', function(addHandler) {
         addHandler('request', function(env, next) {
-          console.log('greeting');
           env.response.body = 'Hello, world!';
           next(env);
         }); 
