@@ -121,7 +121,6 @@ Argo.prototype.buildCore = function() {
 
   that.builder.use(function(addHandler) {
     addHandler('request', function(env, next) {
-      env.request.setEncoding('utf8');
       env.argo._http = that._http;
       next(env);
     });
