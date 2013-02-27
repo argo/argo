@@ -1,22 +1,24 @@
 var assert = require('assert');
 var EventEmitter = require('events').EventEmitter;
+var fs = require('fs');
 var http = require('http');
+var Stream = require('stream');
 var argo = require('../');
 var util = require('util');
 
 function Request() {
   this.headers = {};
-  EventEmitter.call(this);
+  Stream.call(this);
 }
-util.inherits(Request, EventEmitter);
+util.inherits(Request, Stream);
 
 function Response() {
   this.headers = {};
   this.statusCode = 0;
   this.body = '';
-  EventEmitter.call(this);
+  Stream.call(this);
 }
-util.inherits(Response, EventEmitter);
+util.inherits(Response, Stream);
 
 Response.prototype.setHeader = function(k, v) {
   this.headers[k] = v;
@@ -752,4 +754,40 @@ describe('Argo', function() {
       env.request.emit('end');
     });
   });
+
+  /*describe('response serving', function() {
+    it('serves streams', function(done) {
+      var env = _getEnv();
+      env.request = new Request();
+      env.request.url = '/hello.txt';
+      env.request.method = 'GET';
+      env.response = new Response();
+
+      var filename = __dirname + '/hello.txt';
+      var stream = fs.createReadStream(filename);
+
+      var test = '';
+      env.response.on('data', function(chunk) {
+        console.log(chunk);
+        test += chunk.toString();
+      });
+
+      env.response.on('end', function() {
+        assert.equal('Hello, World!', test);
+        done();
+      });
+
+      argo()
+        .get('/hello.txt', function(addHandler) {
+          addHandler('request', function(env, next) {
+            console.log('executing route');
+            env.response.statusCode = 200;
+            env.response.headers['Content-Type'] = 'text/plain';
+            env.response.body = stream;
+            next(env);
+          });
+        })
+        .call(env);
+    });
+  });*/
 });
