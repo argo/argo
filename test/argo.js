@@ -330,8 +330,8 @@ describe('Argo', function() {
       argo()
         .use(function(addHandler) {
           addHandler('response', function(env, next) {
-            assert.equal(env.responseBody, 'Hello Buffered Request!');
-            env.getResponseBody(function(err, body) {
+            assert.equal(env.response.body, 'Hello Buffered Request!');
+            env.response.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Request!');
               done();
             });
@@ -339,7 +339,7 @@ describe('Argo', function() {
         })
         .use(function(addHandler) {
           addHandler('response', function(env, next) {
-            env.getResponseBody(function(err, body) {
+            env.response.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Request!');
               next(env);
             });
@@ -360,7 +360,7 @@ describe('Argo', function() {
         argo()
           .use(function(addHandler) {
             addHandler('request', function(env, next) {
-              env.getRequestBody(function(err, body) {
+              env.request.getBody(function(err, body) {
                 assert.equal(body.toString(), 'Hello Buffered Request!');
                 done();
               });
@@ -383,7 +383,7 @@ describe('Argo', function() {
         argo()
           .use(function(addHandler) {
             addHandler('request', function(env, next) {
-              env.getRequestBody(function(err, body) {
+              env.request.getBody(function(err, body) {
                 assert.equal(body.toString(), 'Hello Buffered Request!');
                 done();
               });
@@ -408,8 +408,8 @@ describe('Argo', function() {
       argo()
         .use(function(addHandler) {
           addHandler('response', function(env, next) {
-            assert.equal(env.responseBody, 'Hello Buffered Response!');
-            env.getResponseBody(function(err, body) {
+            assert.equal(env.response.body, 'Hello Buffered Response!');
+            env.response.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Response!');
               done();
             });
@@ -417,7 +417,7 @@ describe('Argo', function() {
         })
         .use(function(addHandler) {
           addHandler('response', function(env, next) {
-            env.getResponseBody(function(err, body) {
+            env.response.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Response!');
               next(env);
             });
@@ -440,7 +440,7 @@ describe('Argo', function() {
         argo()
           .use(function(addHandler) {
             addHandler('response', function(env, next) {
-              env.getResponseBody(function(err, body) {
+              env.response.getBody(function(err, body) {
                 assert.equal(body.toString(), 'Hello Buffered Response!');
                 done();
               });
@@ -464,7 +464,7 @@ describe('Argo', function() {
         argo()
           .use(function(addHandler) {
             addHandler('response', function(env, next) {
-              env.getResponseBody(function(err, body) {
+              env.response.getBody(function(err, body) {
                 assert.equal(body.toString(), 'Hello Buffered Response!');
                 done();
               });
@@ -481,7 +481,7 @@ describe('Argo', function() {
   });
 
   describe('response ender', function() {
-    it('sets a response body when env.responseBody is empty', function(done) {
+    it('sets a response body when env.response.body is empty', function(done) {
       var env = _getEnv();
       env.target.response = new EventEmitter();
       env.response = new EventEmitter();
@@ -703,7 +703,7 @@ describe('Argo', function() {
           assert(name, 'X-Stuff');
         }
       };
-      env.responseBody = 'proxied!';
+      env.response.body = 'proxied!';
 
       var _http = function() {};
       _http.Agent = function() {};

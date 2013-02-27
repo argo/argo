@@ -100,7 +100,7 @@ OAuth2.prototype.authorize = function(env, next) {
   // If not, return an error.
 
   var that = this;
-  env.getRequestBody(function(err, body) {
+  env.request.getBody(function(err, body) {
     var requestBody = querystring.parse(body.toString());
 
     var passedState = decodeURIComponent(requestBody.state);

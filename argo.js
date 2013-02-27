@@ -53,7 +53,10 @@ Argo.prototype.target = function(url) {
 
 Argo.prototype._bufferBody = function(stream, parent, prop) {
   return function(callback) {
+    console.log('buffer body');
     if (parent[prop]) {
+      console.log('has body');
+      console.log(parent[prop]);
       callback(null, parent[prop]);
       return;
     }
@@ -132,7 +135,7 @@ Argo.prototype.build = function() {
   // spooler
   that.builder.use(function bufferRequest(handle) {
     handle('request', { hoist: true }, function(env, next) {
-      env.getRequestBody = that._bufferBody(env.request, env, 'requestBody');
+      env.request.getBody = that._bufferBody(env.request._request, env.request, 'body');
       next(env);
     });
 
@@ -142,7 +145,7 @@ Argo.prototype.build = function() {
         return;
       }
 
-      env.getResponseBody = that._bufferBody(env.target.response, env, 'responseBody');
+      env.response.getBody = that._bufferBody(env.target.response, env.response, 'body');
       next(env);
     });
   });
@@ -152,16 +155,20 @@ Argo.prototype.build = function() {
   // response ender
   that.builder.use(function(handle) {
     handle('response', { sink: true }, function(env, next) {
-      if (!env.responseBody && env.getResponseBody) {
-        env.getResponseBody(function(err, body) {
+      console.log('in ender');
+      if (!env.response.body && env.response.getBody) {
+        console.log('async getBody');
+        env.response.getBody(function(err, body) {
           var body = body || '';
+          console.log(env.response);
           env.response.setHeader('Content-Length', body.length); 
           env.response.writeHead(env.response.statusCode, env.response.headers);
           env.response.end(body);
         });
         return;
       }
-      var body = env.responseBody || '';
+      console.log('just ending');
+      var body = env.response.body || '';
       env.response.setHeader('Content-Length', body.length); 
       env.response.writeHead(env.response.statusCode, env.response.headers);
       env.response.end(body);
@@ -378,7 +385,7 @@ Argo.prototype._route = function(router, handle) {
 };
 
 Argo.prototype._target = function(env, next) {
-  if (env.response._headerSent) {
+  if (env.response._response._headerSent) {
     next(env);
     return;
   }
@@ -419,7 +426,7 @@ Argo.prototype._target = function(env, next) {
       }
     });
 
-    env.getRequestBody(function(err, body) {
+    env.request.getBody(function(err, body) {
       if (body) {
         req.write(body);
       }
