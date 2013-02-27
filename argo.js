@@ -1,5 +1,6 @@
 var http = require('http');
 var url = require('url');
+var Stream = require('stream');
 var Builder = require('./builder');
 var runner = require('./runner');
 
@@ -24,7 +25,7 @@ var Argo = function(_http) {
 
     incoming.body = null;
     incoming.getBody = that._getBody();
-    incoming.argoModified = true;
+    incoming._argoModified = true;
   }
 
   var serverResponse = this._http.ServerResponse.prototype;
@@ -157,6 +158,7 @@ Argo.prototype.build = function() {
           env.response.writeHead(env.response.statusCode, env.response.headers);
           env.response.end(body);
         } else if (body instanceof Stream) {
+          env.response.writeHead(env.response.statusCode, env.response.headers);
           body.pipe(env.response);
         } else if (typeof body === 'object') {
           body = JSON.stringify(body);
