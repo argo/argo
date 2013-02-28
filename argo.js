@@ -427,7 +427,7 @@ Argo.prototype._target = function(env, next) {
     var req = env.argo._http.request(options, function(res) {
       for (var key in res.headers) {
         var headerName = res._rawHeaderNames[key] || key;
-        env.response.setHeader(headerName, res.getHeader(key));
+        env.response.setHeader(headerName, res.headers[key]);
       }
 
       env.target.response = res;

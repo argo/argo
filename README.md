@@ -47,7 +47,16 @@ Make a request:
 ```bash
 $ curl -i http://localhost:1337/forecastrss?w=2467861
 
-<...giant XML response...>
+HTTP/1.1 200 OK
+Date: Thu, 28 Feb 2013 20:55:03 GMT
+Content-Type: text/xml;charset=UTF-8
+Connection: keep-alive
+Server: YTS/1.20.13
+Access-Control-Allow-Origin: *
+Content-Length: 2337
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<GiantXMLResponse/>
 ```
 
 ### Serving an API Response 
