@@ -16,6 +16,7 @@ function Response() {
   this.headers = {};
   this.statusCode = 0;
   this.body = '';
+  this.writable = true;
   Stream.call(this);
 }
 util.inherits(Response, Stream);
@@ -755,32 +756,30 @@ describe('Argo', function() {
     });
   });
 
-  /*describe('response serving', function() {
+  describe('response serving', function() {
     it('serves streams', function(done) {
       var env = _getEnv();
       env.request = new Request();
-      env.request.url = '/hello.txt';
+      env.request.url = '/hello';
       env.request.method = 'GET';
       env.response = new Response();
 
-      var filename = __dirname + '/hello.txt';
-      var stream = fs.createReadStream(filename);
-
       var test = '';
-      env.response.on('data', function(chunk) {
-        console.log(chunk);
+      env.response.write = function(chunk) {
         test += chunk.toString();
-      });
+      };
 
-      env.response.on('end', function() {
+      env.response.end = function() {
         assert.equal('Hello, World!', test);
         done();
-      });
+      };
+
+      var stream = new Stream();
+      stream.readable = true;
 
       argo()
-        .get('/hello.txt', function(addHandler) {
+        .get('/hello', function(addHandler) {
           addHandler('request', function(env, next) {
-            console.log('executing route');
             env.response.statusCode = 200;
             env.response.headers['Content-Type'] = 'text/plain';
             env.response.body = stream;
@@ -788,6 +787,56 @@ describe('Argo', function() {
           });
         })
         .call(env);
+
+      stream.emit('data', 'Hello, World!');
+      stream.emit('end');
     });
-  });*/
+
+    it('serves stringified JSON objects', function(done) {
+      var env = _getEnv();
+      env.request = new Request();
+      env.request.url = '/hello';
+      env.request.method = 'GET';
+      env.response = new Response();
+
+      env.response.end = function(body) {
+        assert.equal('{"hello":"World"}', body);
+        done();
+      };
+
+      argo()
+        .get('/hello', function(addHandler) {
+          addHandler('request', function(env, next) {
+            env.response.statusCode = 200;
+            env.response.headers['Content-Type'] = 'text/plain';
+            env.response.body = { hello: 'World' };
+            next(env);
+          });
+        })
+        .call(env);
+    });
+
+    it('serves serves an empty response when the Content-Length is 0', function(done) {
+      var env = _getEnv();
+      env.request = new Request();
+      env.request.url = '/hello';
+      env.request.method = 'GET';
+      env.response = new Response();
+
+      env.response.end = function(body) {
+        assert.ok(!body);
+        done();
+      };
+
+      argo()
+        .get('/hello', function(addHandler) {
+          addHandler('request', function(env, next) {
+            env.response.statusCode = 200;
+            env.response.headers['Content-Length'] = 0;
+            next(env);
+          });
+        })
+        .call(env);
+    });
+  });
 });

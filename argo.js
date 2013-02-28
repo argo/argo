@@ -167,7 +167,8 @@ Argo.prototype.build = function() {
           env.response.end(body);
         }
       } else {
-        if (env.response.headers['content-length'] && env.response.headers['content-length'] === '0') {
+        var contentLength = env.response.headers['Content-Length'];
+        if (contentLength == '0') {
           env.response.writeHead(env.response.statusCode, env.response.headers);
           env.response.end();
         } else if (env.target.response) {
