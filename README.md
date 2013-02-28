@@ -2,7 +2,7 @@
 
 An extensible, asynchronous HTTP reverse proxy and origin server.
 
-Argo is:
+<!-- Argo is:
 
 * An API-focused HTTP server.
 * A reverse proxy to manage and modify HTTP requests and responses.
@@ -20,7 +20,7 @@ As a reverse proxy:
 * Transform HTTP messages on the fly.
 * Add OAuth 2.0 support to an existing API.
 * Create a RESTful API façade over legacy systems.
-
+-->
 
 ## Examples
 
