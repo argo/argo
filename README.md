@@ -71,7 +71,6 @@ argo()
     addHandler('request', function(env, next) {
       env.response.statusCode = 200;
       env.response.body = { dogs: ['Alfred', 'Rover', 'Dino'] };
-
       next(env);
     });
   })
