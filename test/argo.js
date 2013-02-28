@@ -30,6 +30,10 @@ Response.prototype.writeHead = function(s, h) {
   this.headers = h;
 }
 
+Response.prototype.getHeader = function(k) {
+  return this.headers[k];
+};
+
 Response.prototype.end = function(b) {
   this.body = b;
 };
@@ -738,11 +742,8 @@ describe('Argo', function() {
       _http.IncomingMessage = Request;
       _http.ServerResponse = Response;
       _http.request = function(options, callback) {
-        var res = {
-          _rawHeaderNames: {
-            'x-stuff': 'X-Stuff'
-          }
-        }
+        var res = new Response();
+        res._rawHeaderNames = { 'x-stuff': 'X-Stuff' };
         res.headers = { 'X-Stuff': 'yep' };
         callback(res);
         return { end: done };
@@ -800,6 +801,7 @@ describe('Argo', function() {
       env.response = new Response();
 
       env.response.end = function(body) {
+        assert.equal('application/json', env.response.getHeader('Content-Type'));
         assert.equal('{"hello":"World"}', body);
         done();
       };
@@ -808,7 +810,6 @@ describe('Argo', function() {
         .get('/hello', function(addHandler) {
           addHandler('request', function(env, next) {
             env.response.statusCode = 200;
-            env.response.headers['Content-Type'] = 'text/plain';
             env.response.body = { hello: 'World' };
             next(env);
           });

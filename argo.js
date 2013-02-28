@@ -30,10 +30,8 @@ var Argo = function(_http) {
 
   var serverResponse = this._http.ServerResponse.prototype;
   if (!serverResponse._argoModified) {
-
     serverResponse.body = null;
     serverResponse.getBody = that._getBody();
-    serverResponse.headers = {};
 
     serverResponse._argoModified = true;
   }
@@ -162,12 +160,15 @@ Argo.prototype.build = function() {
           body.pipe(env.response);
         } else if (typeof body === 'object') {
           body = JSON.stringify(body);
+          if (!env.response.getHeader('Content-Type')) {
+            env.response.setHeader('Content-Type', 'application/json');
+          }
           env.response.setHeader('Content-Length', body ? body.length : 0); 
           env.response.writeHead(env.response.statusCode, env.response.headers);
           env.response.end(body);
         }
       } else {
-        var contentLength = env.response.headers['Content-Length'];
+        var contentLength = env.response.getHeader('Content-Length');
         if (contentLength == '0') {
           env.response.writeHead(env.response.statusCode, env.response.headers);
           env.response.end();
@@ -426,7 +427,7 @@ Argo.prototype._target = function(env, next) {
     var req = env.argo._http.request(options, function(res) {
       for (var key in res.headers) {
         var headerName = res._rawHeaderNames[key] || key;
-        env.response.setHeader(headerName, res.headers[key]);
+        env.response.setHeader(headerName, res.getHeader(key));
       }
 
       env.target.response = res;

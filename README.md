@@ -46,6 +46,8 @@ Make a request:
 
 ```bash
 $ curl -i http://localhost:1337/forecastrss?w=2467861
+
+<...giant XML response...>
 ```
 
 ### Serving an API Response 
@@ -59,8 +61,7 @@ argo()
   .get('/dogs', function(addHandler) {
     addHandler('request', function(env, next) {
       env.response.statusCode = 200;
-      env.response.headers = { 'Content-Type': 'application/json' };
-      env.response.body = ['Alfred', 'Rover', 'Dino'];
+      env.response.body = { dogs: ['Alfred', 'Rover', 'Dino'] };
 
       next(env);
     });
@@ -72,6 +73,14 @@ Make a request:
 
 ```bash
 $ curl -i http://localhost:1337/dogs
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 34 
+Date: Thu, 28 Feb 2013 20:44:46 GMT
+Connection: keep-alive
+
+{"dogs":["Alfred","Rover","Dino"]}
 ```
 
 ## Install
