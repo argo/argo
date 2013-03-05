@@ -298,7 +298,7 @@ describe('Argo', function() {
             server
               .route('/sub', function(addHandler) {
                 addHandler('request', function(env, next) {
-                  assert.equal(env.request.url, '/map/sub');
+                  assert.equal(env.request.url, '/sub');
                   done();
                   next(env);
                 });
@@ -317,7 +317,7 @@ describe('Argo', function() {
             server
               .route('/sub', function(addHandler) {
                 addHandler('request', function(env, next) {
-                  assert.equal(env.request.url, '/map/sub');
+                  assert.equal(env.request.url, '/sub');
                   done();
                   next(env);
                 });

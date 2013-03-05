@@ -257,7 +257,7 @@ Argo.prototype.map = function(path, options, handler) {
     this._router[path] = {};
   }
 
-  function generateHandler() {
+  function generateHandler(path, handler) {
     var argo = new Argo();
     handler(argo);
 
@@ -265,22 +265,52 @@ Argo.prototype.map = function(path, options, handler) {
 
     return function(addHandler) {
       addHandler('request', function mapHandler(env, next) {
-        var oldRouted = env.argo._routed;
+        env.argo._oldRouted = env.argo._oldRouted || [];
+        env.argo._oldRouted.push(env.argo._routed || false);
         env.argo._routed = false;
 
-        var oldRoutedResponseHandler = env.argo._routedResponseHandler;
+        env.argo._oldRoutedResponseHandler = env.argo._oldRoutedResponseHandler || [];
+        env.argo._oldRoutedResponseHandler.push(env.argo._routedResponseHandler);
         env.argo._routedResponseHandler = null;
 
         if (env.request.url[env.request.url.length - 1] === '/') {
           env.request.url = env.request.url.substr(0, env.request.url.length - 1);
         }
-        env.request.routeUri = env.request.url.substr(path.length) || '/';
+        env.request.routeUri = env.request.routeUri || [];
+
+        if (env.request.routeUri && env.request.routeUri.length) {
+          pathLength = 0;
+          env.request.routeUri.forEach(function(p) {
+            pathLength += p.length;
+          });
+        }
+
+        env.request.routeUri.push(path || '/');
+
+        env.request.url = env.request.url.substr(env.request.routeUri[env.request.routeUri.length - 1].length);
+        env.request.url = env.request.url || '/';
 
         // TODO: See if this can work in a response handler here.
+        
+        env.argo._oldOnComplete = env.argo._oldOnComplete || [];
+        if (env.argo.oncomplete) {
+          env.argo._oldOnComplete.push(env.argo.oncomplete);
+        }
+
         env.argo.oncomplete = function(env) {
-          env.argo._routed = oldRouted;
-          env.argo._routedResponseHandler = oldRoutedResponseHandler;
-          env.request.routeUri = null;
+          if (env.argo._oldRouted.length) {
+            env.argo._routed = env.argo._oldRouted.pop();
+          }
+          env.argo._routedResponseHandler = env.argo._oldRoutedResponseHandler.pop();
+
+          if (env.request.routeUri && env.request.routeUri.length) {
+            env.request.url = env.request.routeUri.pop() + env.request.url;
+          }
+
+          if (env.argo._oldOnComplete.length) {
+            env.argo.oncomplete = env.argo._oldOnComplete.pop();
+          }
+
           next(env);
         };
 
@@ -289,7 +319,7 @@ Argo.prototype.map = function(path, options, handler) {
     };
   };
 
-  return this.route(path, options, generateHandler());
+  return this.route(path, options, generateHandler(path, handler));
 };
 
 Argo.prototype._addRouteHandlers = function(handlers) {
@@ -316,8 +346,9 @@ Argo.prototype._routeRequestHandler = function(router) {
   var that = this;
   return function routeRequestHandler(env, next) {
     env.argo._routed = false;
-    var search = env.request.routeUri || env.request.url;
 
+    var search = env.request.url;
+      
     var routerKey;
     if (search === '/' && that._router['/']) {
       routerKey = '/';
@@ -384,7 +415,7 @@ Argo.prototype._routeResponseHandler = function(router) {
     if (env.argo._routedResponseHandler) {
       env.argo._routedResponseHandler(env, next);
       return;
-    } else if (env.argo._routedResponseHandler === null) {
+    } else {
       next(env);
       return;
     }
