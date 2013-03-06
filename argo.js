@@ -1,6 +1,7 @@
 var http = require('http');
 var url = require('url');
 var Stream = require('stream');
+var Frame = require('./frame');
 var Builder = require('./builder');
 var runner = require('./runner');
 
@@ -265,51 +266,47 @@ Argo.prototype.map = function(path, options, handler) {
 
     return function(addHandler) {
       addHandler('request', function mapHandler(env, next) {
-        env.argo._oldRouted = env.argo._oldRouted || [];
-        env.argo._oldRouted.push(env.argo._routed || false);
-        env.argo._routed = false;
+        env.argo.frames = env.argo.frames || [];
+        
+        var frame = new Frame();
+        frame.routed = env.argo._routed;
+        frame.routedResponseHandler = env.argo._routedResponseHandler;
 
-        env.argo._oldRoutedResponseHandler = env.argo._oldRoutedResponseHandler || [];
-        env.argo._oldRoutedResponseHandler.push(env.argo._routedResponseHandler);
+        env.argo._routed = false;
         env.argo._routedResponseHandler = null;
 
         if (env.request.url[env.request.url.length - 1] === '/') {
           env.request.url = env.request.url.substr(0, env.request.url.length - 1);
         }
-        env.request.routeUri = env.request.routeUri || [];
 
-        if (env.request.routeUri && env.request.routeUri.length) {
+        if (env.argo.frames.length) {
           pathLength = 0;
-          env.request.routeUri.forEach(function(p) {
-            pathLength += p.length;
+          env.argo.frames.forEach(function(frame) {
+            pathLength += frame.routeUri.length;
           });
         }
 
-        env.request.routeUri.push(path || '/');
+        frame.routeUri = path || '/';
 
-        env.request.url = env.request.url.substr(env.request.routeUri[env.request.routeUri.length - 1].length);
+        env.request.url = env.request.url.substr(frame.routeUri.length);
         env.request.url = env.request.url || '/';
 
         // TODO: See if this can work in a response handler here.
         
-        env.argo._oldOnComplete = env.argo._oldOnComplete || [];
         if (env.argo.oncomplete) {
-          env.argo._oldOnComplete.push(env.argo.oncomplete);
+          frame.oncomplete = env.argo.oncomplete;
         }
 
+        env.argo.currentFrame = frame;
+        env.argo.frames.push(frame);
+
         env.argo.oncomplete = function(env) {
-          if (env.argo._oldRouted.length) {
-            env.argo._routed = env.argo._oldRouted.pop();
-          }
-          env.argo._routedResponseHandler = env.argo._oldRoutedResponseHandler.pop();
+          var frame = env.argo.frames.pop();
 
-          if (env.request.routeUri && env.request.routeUri.length) {
-            env.request.url = env.request.routeUri.pop() + env.request.url;
-          }
-
-          if (env.argo._oldOnComplete.length) {
-            env.argo.oncomplete = env.argo._oldOnComplete.pop();
-          }
+          env.argo._routed = frame.routed;
+          env.argo._routedResponseHandler = frame.routedResponseHandler;
+          env.request.url = frame.routeUri + env.request.url;
+          env.argo.oncomplete = frame.oncomplete;
 
           next(env);
         };
