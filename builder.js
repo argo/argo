@@ -1,4 +1,4 @@
-var LinkedList = require('./linkedList');
+var LinkedList = require('./linked_list');
 
 function Builder() {
   this._middleware = [];
