@@ -1,7 +1,7 @@
 var argo = require('../');
 var cors = require('./cors');
-var oauth2 = require('../argo-oauth2-package');
-var oauthOptions = require('./oauthOptions');
+var oauth2 = require('argo-oauth2-package');
+var oauthOptions = require('./oauth_options');
 
 var oauth = oauth2.createProvider(oauthOptions);
 

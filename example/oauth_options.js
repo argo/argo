@@ -1,4 +1,4 @@
-var oauth2 = require('../argo-oauth2-package');
+var oauth2 = require('argo-oauth2-package');
 
 var clientStrategy = new oauth2.InMemoryClientStrategy({
   authStrategy: 'params',
