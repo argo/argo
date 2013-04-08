@@ -801,7 +801,7 @@ describe('Argo', function() {
       env.response = new Response();
 
       env.response.end = function(body) {
-        assert.equal('application/json', env.response.getHeader('Content-Type'));
+        assert.equal('application/json; charset=UTF-8', env.response.getHeader('Content-Type'));
         assert.equal('{"hello":"World"}', body);
         done();
       };

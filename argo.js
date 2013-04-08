@@ -160,13 +160,13 @@ Argo.prototype.build = function() {
           env.response.writeHead(env.response.statusCode, env.response.headers);
           body.pipe(env.response);
         } else if (typeof body === 'object') {
-          body = JSON.stringify(body);
+          body = new Buffer(JSON.stringify(body), 'utf-8');
           if (!env.response.getHeader('Content-Type')) {
-            env.response.setHeader('Content-Type', 'application/json');
+            env.response.setHeader('Content-Type', 'application/json; charset=UTF-8');
           }
           env.response.setHeader('Content-Length', body ? body.length : 0); 
           env.response.writeHead(env.response.statusCode, env.response.headers);
-          env.response.end(body);
+          env.response.end(body.toString('utf-8'));
         }
       } else {
         var contentLength = env.response.getHeader('Content-Length');
