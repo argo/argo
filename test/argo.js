@@ -342,7 +342,6 @@ describe('Argo', function() {
       argo(_http)
         .use(function(addHandler) {
           addHandler('response', function(env, next) {
-            assert.equal(env.request.body, 'Hello Buffered Request!');
             env.request.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Request!');
               done();
@@ -432,7 +431,6 @@ describe('Argo', function() {
       argo(_http)
         .use(function(addHandler) {
           addHandler('response', function(env, next) {
-            assert.equal(env.target.response.body, 'Hello Buffered Response!');
             env.target.response.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Response!');
               done();

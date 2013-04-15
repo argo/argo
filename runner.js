@@ -41,7 +41,8 @@ Runner.prototype.listen = function(platform, port) {
           }
         });
         var env = new Environment(req, res);
-        app(env);
+        env.pipeline = platform._pipeline.bind(platform);
+        app.flow(env);
       }).listen(port);
     });
   }

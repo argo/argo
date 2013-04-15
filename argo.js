@@ -106,7 +106,7 @@ Argo.prototype.embed = function() {
 
   this.builder.run(this._target);
   this.builder.use(function(addHandler) {
-    addHandler('response', { sink: true }, function(env) {
+    addHandler('response', { affinity: 'sink' }, function(env) {
       if (env.argo.oncomplete) {
         env.argo.oncomplete(env);
       };
@@ -149,7 +149,7 @@ Argo.prototype.build = function() {
 
   // response ender
   that.builder.use(function(handle) {
-    handle('response', { sink: true }, function(env, next) {
+    handle('response', { affinity: 'sink' }, function(env, next) {
       if (env.response.body) {
         var body = env.response.body;
         if (typeof body === 'string') {
@@ -193,7 +193,7 @@ Argo.prototype.build = function() {
 
 Argo.prototype.call = function(env) {
   var app = this.build();
-  return app(env);
+  return app.flow(env);
 }
 
 Argo.prototype.route = function(path, options, handlers) {
@@ -311,12 +311,16 @@ Argo.prototype.map = function(path, options, handler) {
           next(env);
         };
 
-        app(env);
+        app.flow(env);
       });
     };
   };
 
   return this.route(path, options, generateHandler(path, handler));
+};
+
+Argo.prototype._pipeline = function(name) {
+  return this.builder.pipelineMap[name];
 };
 
 Argo.prototype._addRouteHandlers = function(handlers) {
@@ -421,7 +425,7 @@ Argo.prototype._routeResponseHandler = function(router) {
 
 Argo.prototype._route = function(router, handle) {
   handle('request', this._routeRequestHandler(router));
-  handle('response', { hoist: true }, this._routeResponseHandler(router));
+  handle('response', { affinity: 'hoist' }, this._routeResponseHandler(router));
 };
 
 Argo.prototype._target = function(env, next) {

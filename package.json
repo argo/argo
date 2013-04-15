@@ -19,5 +19,8 @@
   "readmeFilename": "README.md",
   "devDependencies": {
     "mocha": "~1.8.1"
+  },
+  "dependencies": {
+    "pipeworks": "0.0.9"
   }
 }

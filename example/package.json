@@ -6,7 +6,7 @@
   "private": true,
   "dependencies": {
     "xmldom": "~0.1.13",
-    "argo-oauth2-package": "0.0.0"
+    "argo-oauth2-package": "0.0.0",
   },
   "devDependencies": {},
   "scripts": {
