@@ -5,7 +5,7 @@ function Builder() {
   this._targetPipeline = pipeworks();
   this._requestPipeline = pipeworks();
   this._responsePipeline = pipeworks();
-  this._pipelineMap = {
+  this.pipelineMap = {
     'request': this._requestPipeline,
     'response': this._responsePipeline,
     'target': this._targetPipeline
@@ -24,11 +24,11 @@ Builder.prototype.run = function(app) {
 };
 
 Builder.prototype.buildHandler = function eventedBuildHandler(event, options, handler) {
-  if (!(event in this._pipelineMap)) {
-    this._pipelineMap[event] = pipeworks();
+  if (!(event in this.pipelineMap)) {
+    this.pipelineMap[event] = pipeworks();
   }
 
-  this._pipelineMap[event].fit(options, handler);
+  this.pipelineMap[event].fit(options, handler);
 };
 
 Builder.prototype.build = function() {

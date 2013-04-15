@@ -319,6 +319,10 @@ Argo.prototype.map = function(path, options, handler) {
   return this.route(path, options, generateHandler(path, handler));
 };
 
+Argo.prototype._pipeline = function(name) {
+  return this.builder.pipelineMap[name];
+};
+
 Argo.prototype._addRouteHandlers = function(handlers) {
   return function add(name, opts, cb) {
     if (typeof opts === 'function') {
