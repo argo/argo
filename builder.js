@@ -39,10 +39,7 @@ Builder.prototype.build = function() {
 
   var pipeline = this._requestPipeline.join(this._targetPipeline.build()).join(this._responsePipeline);
 
-  var built = pipeline.build();
-  built.call = built.flow;
-
-  return built;
+  return pipeline.build();
 };
 
 module.exports = Builder;

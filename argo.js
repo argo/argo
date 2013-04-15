@@ -311,7 +311,7 @@ Argo.prototype.map = function(path, options, handler) {
           next(env);
         };
 
-        app.call(env);
+        app.flow(env);
       });
     };
   };
