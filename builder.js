@@ -1,10 +1,15 @@
-var LinkedList = require('./linked_list');
+var pipeworks = require('pipeworks');
 
 function Builder() {
   this._middleware = [];
-  this._targetApp = null;
-  this._eventHandlerMap = new EventHandlerMap();
-  this._ebh = this._buildHandler(this._eventHandlerMap);
+  this._targetPipeline = pipeworks();
+  this._requestPipeline = pipeworks();
+  this._responsePipeline = pipeworks();
+  this._pipelineMap = {
+    'request': this._requestPipeline,
+    'response': this._responsePipeline,
+    'target': this._targetPipeline
+  };
 }
 
 Builder.prototype.use = function(middleware) {
@@ -12,84 +17,32 @@ Builder.prototype.use = function(middleware) {
 };
 
 Builder.prototype.run = function(app) {
-  this._targetApp = app;
+  this._targetPipeline
+    .fit(function(env, next) {
+      app(env, next);
+    });
 };
 
-Builder.prototype._buildHandler = function(eventHandlerMap) {
-  return function eventedBuildHandler(event, options, handler) {
-    if (typeof options === 'function') {
-      handler = options;
-      options = null;
-    }
+Builder.prototype.buildHandler = function eventedBuildHandler(event, options, handler) {
+  if (!(event in this._pipelineMap)) {
+    this._pipelineMap[event] = pipeworks();
+  }
 
-    if (eventHandlerMap[event]) {
-      options = options || {};
-      options.hoist = options.hoist || false;
-      options.sink = options.sink || false;
-
-      var prefix = '';
-      if (options.hoist) {
-        prefix = 'pre';
-      } else if (options.sink) {
-        prefix = 'post';
-      }
-
-      var operation = options.hoist ? 'unshift' : 'push';
-      var event = prefix + event;
-      var m = eventHandlerMap[event];
-
-      m[operation].call(m, handler);
-    }
-  };
+  this._pipelineMap[event].fit(options, handler);
 };
 
 Builder.prototype.build = function() {
-  var handle = this._ebh;
+  var handle = this.buildHandler.bind(this);
   this._middleware.forEach(function(middleware) {
     middleware(handle);
   });
 
-  var pipeline = new LinkedList();
-  this._targetApp = this._targetApp || function(env, next) { next(env); };
-  var handlers = this._eventHandlerMap.prerequest.concat(
-      this._eventHandlerMap.request,
-      this._eventHandlerMap.postrequest,
-      this._targetApp,
-      this._eventHandlerMap.preresponse,
-      this._eventHandlerMap.response.reverse(),
-      this._eventHandlerMap.postresponse);
+  var pipeline = this._requestPipeline.join(this._targetPipeline.build()).join(this._responsePipeline);
 
-  handlers = handlers.slice(0).reverse();
+  var built = pipeline.build();
+  built.call = built.flow;
 
-  handlers.forEach(function(handler) {
-    var obj = new LinkedList.Node(function(next) {
-      return function(env) {
-        handler(env, next);
-      };
-    });
-
-    pipeline.add(obj);
-  });
-
-  var node = pipeline.head();
-
-  var _app = new LinkedList.Node();
-  _app = node.value;
-  while (node) {
-    _app = node.value(_app);
-    node = node.next;
-  }
-  
-  return _app;
+  return built;
 };
-
-function EventHandlerMap() {
-  this.request = [];
-  this.response = [];
-  this.preresponse = [];
-  this.postresponse = [];
-  this.prerequest = [];
-  this.postrequest = [];
-}
 
 module.exports = Builder;
