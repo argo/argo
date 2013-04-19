@@ -1,8 +1,8 @@
 var url = require('url');
 var DOMParser = require('xmldom').DOMParser;
 
-module.exports = function(addHandler) {
-  addHandler('request', function(env, next) {
+module.exports = function(handle) {
+  handle('request', function(env, next) {
     var regex = /\/([0-9]+)\.json/;
     var result = regex.exec(env.request.url);
 
@@ -14,7 +14,7 @@ module.exports = function(addHandler) {
     next(env);
   });
 
-  addHandler('response', function(env, next) {
+  handle('response', function(env, next) {
     env.response.setHeader('Content-Type', 'application/json;charset=UTF-8');
     env.target.response.getBody(function(err, body) {
       var json = xmlToJson(body.toString());

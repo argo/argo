@@ -32,8 +32,8 @@ Setup the server:
 var argo = require('argo-server');
 
 argo()
-  .use(function(addHandler) {
-    addHandler('response', function(env, next) {
+  .use(function(handle) {
+    handle('response', function(env, next) {
       env.response.setHeader('Access-Control-Allow-Origin', '*');
       next(env);
     });
@@ -67,8 +67,8 @@ Setup the server:
 var argo = require('argo-server');
 
 argo()
-  .get('/dogs', function(addHandler) {
-    addHandler('request', function(env, next) {
+  .get('/dogs', function(handle) {
+    handle('request', function(env, next) {
       env.response.statusCode = 200;
       env.response.body = { dogs: ['Alfred', 'Rover', 'Dino'] };
       next(env);
@@ -99,13 +99,13 @@ $ npm install argo-server
 
 ## Usage
 
-### use(addHandlerFunction)
+### use(handleFunction)
 
 Parameters:
 
-`addHandler` has the signature `addHandler(type, [options], handler)`. The `addHandlerFunction` is used to set up request and response handlers.  
+`handle` has the signature `handle(type, [options], handler)`. The `handleFunction` is used to set up request and response handlers.  
 
-#### `addHandler` Parameters:
+#### `handle` Parameters:
 
 `type`: `'request'` or `'response'`
 
@@ -125,8 +125,8 @@ It's implemented like so:
 
 ```javascript
 argo()
-  .use(function(addHandler) {
-    addHandler('request', function(env, next) {
+  .use(function(handle) {
+    handle('request', function(env, next) {
       env.request.headers['X-Custom-Header'] = 'Yippee!';
       next(env);
     });
@@ -152,7 +152,7 @@ argo()
   .target('http://weather.yahooapis.com')
 ```
 
-### route(path, [options], addHandlerFunction)
+### route(path, [options], handleFunction)
 
 Parameters:
 
@@ -160,14 +160,14 @@ Parameters:
 
 `options`: an object with a `methods` property to filter HTTP methods (e.g., `{ methods: ['GET','POST'] }`).  Optional.
 
-`addHandlerFunction`: Same as in `use`.
+`handleFunction`: Same as in `use`.
 
 Example:
 
 ```javascript
 argo()
-  .route('/greeting', function(addHandler) {
-    addHandler('request', function(env, next) {
+  .route('/greeting', function(handle) {
+    handle('request', function(env, next) {
       env.response.statusCode = 200;
       env.response.headers = { 'Content-Type': 'text/plain' };
       env.response.body = 'Hello World!';
@@ -177,12 +177,12 @@ argo()
   })
 ```
 
-### get(path, addHandlerFunction)
-### post(path, addHandlerFunction)
-### put(path, addHandlerFunction)
-### del(path, addHandlerFunction)
-### options(path, addHandlerFunction)
-### trace(path, addHandlerFunction)
+### get(path, handleFunction)
+### post(path, handleFunction)
+### put(path, handleFunction)
+### del(path, handleFunction)
+### options(path, handleFunction)
+### trace(path, handleFunction)
 
 Method filters built on top of `route`.
 
@@ -190,8 +190,8 @@ Example:
 
 ```javascript
 argo()
-  .get('/puppies', function(addHandler) {
-    addHandler('request', function(env, next) {
+  .get('/puppies', function(handle) {
+    handle('request', function(env, next) {
       env.response.body = JSON.stringify([{name: 'Sparky', breed: 'Fox Terrier' }]);
       next(env);
     });

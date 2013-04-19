@@ -93,8 +93,8 @@ Argo.prototype.use = function(middleware) {
 };
 
 Argo.prototype.target = function(url) {
-  return this.use(function(addHandler) {
-    addHandler('request', function(env, next) {
+  return this.use(function(handler) {
+    handler('request', function(env, next) {
       env.target.url = url + (env.request.url || '');
       next(env);
     });
@@ -105,8 +105,8 @@ Argo.prototype.embed = function() {
   this.buildCore();
 
   this.builder.run(this._target);
-  this.builder.use(function(addHandler) {
-    addHandler('response', { affinity: 'sink' }, function(env, next) {
+  this.builder.use(function(handler) {
+    handler('response', { affinity: 'sink' }, function(env, next) {
       if (env.argo.oncomplete) {
         env.argo.oncomplete(env);
       };
@@ -119,8 +119,8 @@ Argo.prototype.embed = function() {
 Argo.prototype.buildCore = function() {
   var that = this;
 
-  that.builder.use(function(addHandler) {
-    addHandler('request', function(env, next) {
+  that.builder.use(function(handler) {
+    handler('request', function(env, next) {
       env.argo._http = that._http;
       next(env);
     });
@@ -264,8 +264,8 @@ Argo.prototype.map = function(path, options, handler) {
 
     var app = argo.embed();
 
-    return function(addHandler) {
-      addHandler('request', function mapHandler(env, next) {
+    return function(handler) {
+      handler('request', function mapHandler(env, next) {
         env.argo.frames = env.argo.frames || [];
         
         var frame = new Frame();

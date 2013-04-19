@@ -2,8 +2,8 @@ var fs = require('fs');
 var argo = require('../');
 
 argo()
-  .get('/hello.txt', function(addHandler) {
-    addHandler('request', function(env, next) {
+  .get('/hello.txt', function(handle) {
+    handle('request', function(env, next) {
       var filename = __dirname + '/hello.txt';
       fs.stat(filename, function(err, stats) {
         console.log(stats);

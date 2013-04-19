@@ -85,7 +85,7 @@ function buildPrintTrace(env) {
   };
 }
 
-module.exports = function addTraceHandler(addHandler) {
+module.exports = function addTraceHandler(handle) {
   socket = new net.Socket({
     fd: 1,
     type: 'pipe',
@@ -93,7 +93,7 @@ module.exports = function addTraceHandler(addHandler) {
     writable: true,
     allowHalfOpen: true });
 
-  addHandler('request', { hoist: true }, function(env, next) {
+  handle('request', { hoist: true }, function(env, next) {
     env.requestId = uuid.v4();
     env.sequenceNumber = 0;
     env.printTrace = buildPrintTrace(env);

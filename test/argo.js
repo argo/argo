@@ -102,7 +102,7 @@ describe('Argo', function() {
           wasCalled = true;
         };
 
-        server.builder.use(function(addHandler) {});
+        server.builder.use(function(handle) {});
 
         server.builder.use = _use;
 
@@ -113,8 +113,8 @@ describe('Argo', function() {
         var server = argo();
         var wasCalled = false;
 
-        server.use(function(addHandler) {
-          addHandler('request', function(env, next) {
+        server.use(function(handle) {
+          handle('request', function(env, next) {
             wasCalled = true;
           });
         });
@@ -128,8 +128,8 @@ describe('Argo', function() {
         var server = argo();
         var wasCalled = false;
 
-        server.use(function(addHandler) {
-          addHandler('response', function(env, next) {
+        server.use(function(handle) {
+          handle('response', function(env, next) {
             wasCalled = true;
           });
         });
@@ -163,8 +163,8 @@ describe('Argo', function() {
     it('sets env.target.url', function(done) {
       argo()
         .target('http://targeturl')
-        .use(function(addHandler) {
-          addHandler('request', function(env, next) {
+        .use(function(handle) {
+          handle('request', function(env, next) {
             assert.equal(env.target.url, 'http://targeturl');
             done();
             //next(env);
@@ -180,8 +180,8 @@ describe('Argo', function() {
       env.request.url = '/route';
       env.request.method = 'GET';
       argo()
-        .route('/route', function(addHandler) {
-          addHandler('request', function(env, next) {
+        .route('/route', function(handle) {
+          handle('request', function(env, next) {
             assert.equal(env.request.url, '/route');
             done();
           });
@@ -195,8 +195,8 @@ describe('Argo', function() {
       env.request.method = 'GET';
 
       argo()
-        .route('/route', function(addHandler) {
-          addHandler('response', function(env, next) {
+        .route('/route', function(handle) {
+          handle('response', function(env, next) {
             assert.equal(env.request.url, '/route');
             done();
           });
@@ -210,13 +210,13 @@ describe('Argo', function() {
       env.request.method = 'GET';
 
       argo()
-        .use(function(addHandler) {
-          addHandler('response', function(env, next) {
+        .use(function(handle) {
+          handle('response', function(env, next) {
             assert.equal(env.request.url, '/rout3');
             done();
           });
         })
-        .route('/route', function(addHandler) {
+        .route('/route', function(handle) {
         })
         .call(env);
     });
@@ -227,9 +227,9 @@ describe('Argo', function() {
       env.request.method = 'GET';
 
       argo()
-        .route('/route', function(addHandler) { })
-        .route('/route/that/matches', function(addHandler) {
-          addHandler('request', function(env, next) {
+        .route('/route', function(handle) { })
+        .route('/route/that/matches', function(handle) {
+          handle('request', function(env, next) {
             assert.equal(env.request.url, '/route/that/matches/first');
             done();
           });
@@ -243,9 +243,9 @@ describe('Argo', function() {
       env.request.method = 'GET';
 
       argo()
-        .route('/route', function(addHandler) { })
-        .route('/', function(addHandler) {
-          addHandler('request', function(env, next) {
+        .route('/route', function(handle) { })
+        .route('/', function(handle) {
+          handle('request', function(env, next) {
             assert.equal(env.request.url, '/');
             done();
           });
@@ -259,13 +259,13 @@ describe('Argo', function() {
       env.request.method = 'GET';
 
       argo()
-        .use(function(addHandler) {
-          addHandler('response', function(env, next) {
+        .use(function(handle) {
+          handle('response', function(env, next) {
             assert(env.response.statusCode, 404);
             done();
           });
         })
-        .route('/', function(addHandler) { })
+        .route('/', function(handle) { })
       .call(env);
     });
 
@@ -275,13 +275,13 @@ describe('Argo', function() {
       env.request.method = 'GET';
 
       argo()
-        .route('*', function(addHandler) {
-          addHandler('request', function(env, next) {
+        .route('*', function(handle) {
+          handle('request', function(env, next) {
             assert(env.request.url, '/404');
             done();
           });
         })
-        .route('/', function(addHandler) { })
+        .route('/', function(handle) { })
       .call(env);
     });
   });
@@ -296,8 +296,8 @@ describe('Argo', function() {
         argo()
           .map('/map', function(server) {
             server
-              .route('/sub', function(addHandler) {
-                addHandler('request', function(env, next) {
+              .route('/sub', function(handle) {
+                handle('request', function(env, next) {
                   assert.equal(env.request.url, '/sub');
                   done();
                   next(env);
@@ -315,8 +315,8 @@ describe('Argo', function() {
         argo()
           .map('/map', function(server) {
             server
-              .route('/sub', function(addHandler) {
-                addHandler('request', function(env, next) {
+              .route('/sub', function(handle) {
+                handle('request', function(env, next) {
                   assert.equal(env.request.url, '/sub');
                   done();
                   next(env);
@@ -340,16 +340,16 @@ describe('Argo', function() {
       _http.ServerResponse = Response;
 
       argo(_http)
-        .use(function(addHandler) {
-          addHandler('response', function(env, next) {
+        .use(function(handle) {
+          handle('response', function(env, next) {
             env.request.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Request!');
               done();
             });
           });
         })
-        .use(function(addHandler) {
-          addHandler('response', function(env, next) {
+        .use(function(handle) {
+          handle('response', function(env, next) {
             env.request.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Request!');
               next(env);
@@ -373,8 +373,8 @@ describe('Argo', function() {
         _http.ServerResponse = Response;
 
         argo(_http)
-          .use(function(addHandler) {
-            addHandler('request', function(env, next) {
+          .use(function(handle) {
+            handle('request', function(env, next) {
               env.request.getBody(function(err, body) {
                 assert.equal(body.toString(), 'Hello Buffered Request!');
                 done();
@@ -400,8 +400,8 @@ describe('Argo', function() {
         _http.ServerResponse = Response;
 
         argo(_http)
-          .use(function(addHandler) {
-            addHandler('request', function(env, next) {
+          .use(function(handle) {
+            handle('request', function(env, next) {
               env.request.getBody(function(err, body) {
                 assert.equal(body.toString(), 'Hello Buffered Request!');
                 done();
@@ -429,16 +429,16 @@ describe('Argo', function() {
       _http.ServerResponse = Response;
 
       argo(_http)
-        .use(function(addHandler) {
-          addHandler('response', function(env, next) {
+        .use(function(handle) {
+          handle('response', function(env, next) {
             env.target.response.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Response!');
               done();
             });
           });
         })
-        .use(function(addHandler) {
-          addHandler('response', function(env, next) {
+        .use(function(handle) {
+          handle('response', function(env, next) {
             env.target.response.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Response!');
               next(env);
@@ -464,8 +464,8 @@ describe('Argo', function() {
         _http.ServerResponse = Response;
 
         argo(_http)
-          .use(function(addHandler) {
-            addHandler('response', function(env, next) {
+          .use(function(handle) {
+            handle('response', function(env, next) {
               env.target.response.getBody(function(err, body) {
                 assert.equal(body.toString(), 'Hello Buffered Response!');
                 done();
@@ -492,8 +492,8 @@ describe('Argo', function() {
         _http.ServerResponse = Response;
 
         argo(_http)
-          .use(function(addHandler) {
-            addHandler('response', function(env, next) {
+          .use(function(handle) {
+            handle('response', function(env, next) {
               env.target.response.getBody(function(err, body) {
                 assert.equal(body.toString(), 'Hello Buffered Response!');
                 done();
@@ -537,8 +537,8 @@ describe('Argo', function() {
       env.request.url = '/sheep';
 
       argo()
-        .get('/sheep', function(addHandler) {
-          addHandler('request', function(env, next) {
+        .get('/sheep', function(handle) {
+          handle('request', function(env, next) {
             assert.equal(env.request.method, 'GET');
             done();
           });
@@ -554,8 +554,8 @@ describe('Argo', function() {
       env.request.url = '/sheep';
 
       argo()
-        .post('/sheep', function(addHandler) {
-          addHandler('request', function(env, next) {
+        .post('/sheep', function(handle) {
+          handle('request', function(env, next) {
             assert.equal(env.request.method, 'POST');
             done();
           });
@@ -571,8 +571,8 @@ describe('Argo', function() {
       env.request.url = '/sheep';
 
       argo()
-        .put('/sheep', function(addHandler) {
-          addHandler('request', function(env, next) {
+        .put('/sheep', function(handle) {
+          handle('request', function(env, next) {
             assert.equal(env.request.method, 'PUT');
             done();
           });
@@ -588,8 +588,8 @@ describe('Argo', function() {
       env.request.url = '/sheep';
 
       argo()
-        .del('/sheep', function(addHandler) {
-          addHandler('request', function(env, next) {
+        .del('/sheep', function(handle) {
+          handle('request', function(env, next) {
             assert.equal(env.request.method, 'DELETE');
             done();
           });
@@ -605,8 +605,8 @@ describe('Argo', function() {
       env.request.url = '/sheep';
 
       argo()
-        .head('/sheep', function(addHandler) {
-          addHandler('request', function(env, next) {
+        .head('/sheep', function(handle) {
+          handle('request', function(env, next) {
             assert.equal(env.request.method, 'HEAD');
             done();
           });
@@ -622,8 +622,8 @@ describe('Argo', function() {
       env.request.url = '/sheep';
 
       argo()
-        .options('/sheep', function(addHandler) {
-          addHandler('request', function(env, next) {
+        .options('/sheep', function(handle) {
+          handle('request', function(env, next) {
             assert.equal(env.request.method, 'OPTIONS');
             done();
           });
@@ -640,8 +640,8 @@ describe('Argo', function() {
       env.request.url = '/sheep';
 
       argo()
-        .trace('/sheep', function(addHandler) {
-          addHandler('request', function(env, next) {
+        .trace('/sheep', function(handle) {
+          handle('request', function(env, next) {
             assert.equal(env.request.method, 'TRACE');
             done();
           });
@@ -661,7 +661,7 @@ describe('Argo', function() {
       };
 
       argo()
-        .get('/sheep', function(addHandler) { })
+        .get('/sheep', function(handle) { })
         .call(env);
     });
   });
@@ -679,8 +679,8 @@ describe('Argo', function() {
       _http.ServerResponse = Response;
 
       argo(_http)
-        .use(function(addHandler) {
-          addHandler('response', function(env, next) {
+        .use(function(handle) {
+          handle('response', function(env, next) {
             assert.ok(!env.target.response);
             done();
           });
@@ -777,8 +777,8 @@ describe('Argo', function() {
       stream.readable = true;
 
       argo()
-        .get('/hello', function(addHandler) {
-          addHandler('request', function(env, next) {
+        .get('/hello', function(handle) {
+          handle('request', function(env, next) {
             env.response.statusCode = 200;
             env.response.headers['Content-Type'] = 'text/plain';
             env.response.body = stream;
@@ -805,8 +805,8 @@ describe('Argo', function() {
       };
 
       argo()
-        .get('/hello', function(addHandler) {
-          addHandler('request', function(env, next) {
+        .get('/hello', function(handle) {
+          handle('request', function(env, next) {
             env.response.statusCode = 200;
             env.response.body = { hello: 'World' };
             next(env);
@@ -828,8 +828,8 @@ describe('Argo', function() {
       };
 
       argo()
-        .get('/hello', function(addHandler) {
-          addHandler('request', function(env, next) {
+        .get('/hello', function(handle) {
+          handle('request', function(env, next) {
             env.response.statusCode = 200;
             env.response.headers['Content-Length'] = 0;
             next(env);
