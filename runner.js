@@ -5,7 +5,7 @@ var util = require('util');
 
 var Runner = function() {};
 
-var numCPUs = require('os').cpus().length;
+//var numCPUs = require('os').cpus().length;
 
 Runner.prototype.listen = function(platform, port) {
   /*if (cluster.isMaster) {
