@@ -107,7 +107,6 @@ Argo.prototype.embed = function() {
   this.builder.run(this._target);
   this.builder.use(function(addHandler) {
     addHandler('response', { affinity: 'sink' }, function(env, next) {
-      console.log(env.toString());
       if (env.argo.oncomplete) {
         env.argo.oncomplete(env);
       };
