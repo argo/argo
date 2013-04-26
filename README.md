@@ -29,7 +29,7 @@ As a reverse proxy:
 Setup the server:
 
 ```javascript
-var argo = require('argo-server');
+var argo = require('argo');
 
 argo()
   .use(function(handle) {
@@ -64,7 +64,7 @@ Content-Length: 2337
 Setup the server: 
 
 ```javascript
-var argo = require('argo-server');
+var argo = require('argo');
 
 argo()
   .get('/dogs', function(handle) {
@@ -94,7 +94,7 @@ Connection: keep-alive
 ## Install
 
 ```bash
-$ npm install argo-server
+$ npm install argo
 ```
 
 ## Usage
