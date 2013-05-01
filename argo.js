@@ -346,6 +346,10 @@ function RouteHandlers() {
 Argo.prototype._routeRequestHandler = function(router) {
   var that = this;
   return function routeRequestHandler(env, next) {
+    if (env.argo.bypassRoute) {
+      return next(env);
+    }
+
     env.argo._routed = false;
 
     var search = env.request.url;
