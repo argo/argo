@@ -97,34 +97,45 @@ Connection: keep-alive
 $ npm install argo
 ```
 
+## Documentation
+
+* [handleFunction](#handleFunction)
+* [use(handleFunction)](#usehandle)
+* [use(package)](#usepackage)
+* [target](#target)
+* [route](#route)
+* [get](#get)
+* [post](#post)
+* [put](#put)
+* [del](#del)
+* [options](#options)
+* [trace](#trace)
+* [map](#map)
+* [include](#include)
+* [listen](#listen)
+
+
 ## Usage
 
-### use(handleFunction)
+<a name="handleFunction"/>
+### handleFunction(type, [options], callback)
 
-Parameters:
+* `type`: `'request'` or `'response'`
 
-`handle` has the signature `handle(type, [options], handler)`. The `handleFunction` is used to set up request and response handlers.  
+* `options`: Mostly used for internal purposes.  Optional.
 
-#### `handle` Parameters:
-
-`type`: `'request'` or `'response'`
-
-`options`: Mostly used for internal purposes.  Optional.
-
-`handler`: A request or response handler.  `handler` has the signature `handler(env, next)`.
-
-#### `handler` Parameters:
-
-`env` is an environment context that is passed to every handler.
-
-`next` is a reference to the next function in the pipeline.
+* `callback(env, next)`: A request or response callback. `env` is an environment context that is passed to every handler, and `next` is a reference to the next function in the pipeline.
 
 When the handler is complete and wishes to pass to the next function in the pipeline, it must call `next(env)`.
 
-It's implemented like so:
+<a name="usehandle"/>
+### use(handleFunction)
+
+`handleFunction` is used to set up request and response handlers.  
 
 ```javascript
 argo()
+  //For every request add 'X-Custom-Header' with value 'Yippee!'
   .use(function(handle) {
     handle('request', function(env, next) {
       env.request.headers['X-Custom-Header'] = 'Yippee!';
@@ -132,18 +143,17 @@ argo()
     });
   })
 ```
-
+<a name="usepackage"/>
 ### use(package)
 
 Alias for `include(package)`.
 
+<a name="target"/>
 ### target(uri)
 
 `target` is used for proxying requests to a backend server.
 
-Parameters:
-
-`uri`: a string pointing to the target URI.
+* `uri`: a string pointing to the target URI.
 
 Example:
 
@@ -151,16 +161,14 @@ Example:
 argo()
   .target('http://weather.yahooapis.com')
 ```
-
+<a name="route"/>
 ### route(path, [options], handleFunction)
 
-Parameters:
+* `path`: a string used to match HTTP Request URI path.
 
-`path`: a string used to match HTTP Request URI path.
+* `options`: an object with a `methods` property to filter HTTP methods (e.g., `{ methods: ['GET','POST'] }`).  Optional.
 
-`options`: an object with a `methods` property to filter HTTP methods (e.g., `{ methods: ['GET','POST'] }`).  Optional.
-
-`handleFunction`: Same as in `use`.
+* `handleFunction`: Same as in `use`.
 
 Example:
 
@@ -176,7 +184,12 @@ argo()
     });
   })
 ```
-
+<a name="get"/>
+<a name="post"/>
+<a name="put"/>
+<a name="del"/>
+<a name="options"/>
+<a name="trace"/>
 ### get(path, handleFunction)
 ### post(path, handleFunction)
 ### put(path, handleFunction)
@@ -197,18 +210,16 @@ argo()
     });
   })
 ```
-
+<a name="map"/>
 ### map(path, [options], argoSegmentFunction)
 
 `map` is used to delegate control to sub-Argo instances based on a request URI path.
 
-Parameters:
+* `path`: a string used to match the HTTP Request URI path.
 
-`path`: a string used to match the HTTP Request URI path.
+* `options`: an object with a `methods` property to filter HTTP methods (e.g., `{ methods: ['GET','POST'] }`).  Optional.
 
-`options`: an object with a `methods` property to filter HTTP methods (e.g., `{ methods: ['GET','POST'] }`).  Optional.
-
-`argoSegmentFunction`: a function that is passed an instance of `argo` for additional setup.
+* `argoSegmentFunction`: a function that is passed an instance of `argo` for additional setup.
 
 Example:
 
@@ -220,12 +231,10 @@ argo()
       .target('http://backend_payment_server');
   })
 ```
-
+<a name="include"/>
 ### include(package)
 
-Parameters:
-
-`package`: An object that contains a `package` property.
+* `package`: An object that contains a `package` property.
 
 The `package` property is a function that takes an argo instance as a paramter and returns an object that contains a `name` and an `install` function.
 
@@ -244,14 +253,12 @@ var superPackage = function(argo) {
 };
 
 argo()
-  .include(superPackage)
+  .include({ package: superPackage})
 ```
-
+<a name="listen"/>
 ### listen(port)
 
-Parameters:
-
-`port`: A port on which the server should listen.
+* `port`: A port on which the server should listen.
 
 ## Tests
 
