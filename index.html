@@ -1,0 +1,311 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Argo by argo</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Argo</h1>
+        <p>Argo is a modular HTTP gateway for Web APIs.</p>
+
+        <p class="view"><a href="https://github.com/argo/argo">View the Project on GitHub <small>argo/argo</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/argo/argo/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/argo/argo/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/argo/argo">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>Argo</h1>
+
+<p>An extensible, asynchronous HTTP reverse proxy and origin server.</p>
+
+
+
+<h2>Examples</h2>
+
+<h3>Adding Cross-Origin Resource Sharing</h3>
+
+<p>Setup the server:</p>
+
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">argo</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'argo'</span><span class="p">);</span>
+
+<span class="nx">argo</span><span class="p">()</span>
+  <span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">handle</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">handle</span><span class="p">(</span><span class="s1">'response'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">env</span><span class="p">,</span> <span class="nx">next</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">env</span><span class="p">.</span><span class="nx">response</span><span class="p">.</span><span class="nx">setHeader</span><span class="p">(</span><span class="s1">'Access-Control-Allow-Origin'</span><span class="p">,</span> <span class="s1">'*'</span><span class="p">);</span>
+      <span class="nx">next</span><span class="p">(</span><span class="nx">env</span><span class="p">);</span>
+    <span class="p">});</span>
+  <span class="p">})</span>
+  <span class="p">.</span><span class="nx">target</span><span class="p">(</span><span class="s1">'http://weather.yahooapis.com'</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">1337</span><span class="p">);</span>
+</pre></div>
+
+<p>Make a request:</p>
+
+<div class="highlight"><pre><span class="nv">$ </span>curl -i http://localhost:1337/forecastrss?w<span class="o">=</span>2467861
+
+HTTP/1.1 200 OK
+Date: Thu, 28 Feb 2013 20:55:03 GMT
+Content-Type: text/xml;charset<span class="o">=</span>UTF-8
+Connection: keep-alive
+Server: YTS/1.20.13
+Access-Control-Allow-Origin: *
+Content-Length: 2337
+
+&lt;?xml <span class="nv">version</span><span class="o">=</span><span class="s2">"1.0"</span> <span class="nv">encoding</span><span class="o">=</span><span class="s2">"UTF-8"</span> <span class="nv">standalone</span><span class="o">=</span><span class="s2">"yes"</span> ?&gt;
+&lt;GiantXMLResponse/&gt;
+</pre></div>
+
+<h3>Serving an API Response</h3>
+
+<p>Setup the server: </p>
+
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">argo</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'argo'</span><span class="p">);</span>
+
+<span class="nx">argo</span><span class="p">()</span>
+  <span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'/dogs'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">handle</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">handle</span><span class="p">(</span><span class="s1">'request'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">env</span><span class="p">,</span> <span class="nx">next</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">env</span><span class="p">.</span><span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">=</span> <span class="mi">200</span><span class="p">;</span>
+      <span class="nx">env</span><span class="p">.</span><span class="nx">response</span><span class="p">.</span><span class="nx">body</span> <span class="o">=</span> <span class="p">{</span> <span class="nx">dogs</span><span class="o">:</span> <span class="p">[</span><span class="s1">'Alfred'</span><span class="p">,</span> <span class="s1">'Rover'</span><span class="p">,</span> <span class="s1">'Dino'</span><span class="p">]</span> <span class="p">};</span>
+      <span class="nx">next</span><span class="p">(</span><span class="nx">env</span><span class="p">);</span>
+    <span class="p">});</span>
+  <span class="p">})</span>
+  <span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">1337</span><span class="p">);</span>
+</pre></div>
+
+<p>Make a request:</p>
+
+<div class="highlight"><pre><span class="nv">$ </span>curl -i http://localhost:1337/dogs
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 34 
+Date: Thu, 28 Feb 2013 20:44:46 GMT
+Connection: keep-alive
+
+<span class="o">{</span><span class="s2">"dogs"</span>:<span class="o">[</span><span class="s2">"Alfred"</span>,<span class="s2">"Rover"</span>,<span class="s2">"Dino"</span><span class="o">]}</span>
+</pre></div>
+
+<h2>Install</h2>
+
+<div class="highlight"><pre><span class="nv">$ </span>npm install argo
+</pre></div>
+
+<h2>Documentation</h2>
+
+<ul>
+<li><a href="#handleFunction">handleFunction</a></li>
+<li><a href="#usehandle">use(handleFunction)</a></li>
+<li><a href="#usepackage">use(package)</a></li>
+<li><a href="#target">target</a></li>
+<li><a href="#route">route</a></li>
+<li><a href="#get">get</a></li>
+<li><a href="#post">post</a></li>
+<li><a href="#put">put</a></li>
+<li><a href="#del">del</a></li>
+<li><a href="#options">options</a></li>
+<li><a href="#trace">trace</a></li>
+<li><a href="#map">map</a></li>
+<li><a href="#include">include</a></li>
+<li><a href="#listen">listen</a></li>
+</ul><h2>Usage</h2>
+
+<p><a name="handleFunction"></a></p>
+
+<h3>handleFunction(type, [options], callback)</h3>
+
+<ul>
+<li><p><code>type</code>: <code>'request'</code> or <code>'response'</code></p></li>
+<li><p><code>options</code>: Mostly used for internal purposes.  Optional.</p></li>
+<li><p><code>callback(env, next)</code>: A request or response callback. <code>env</code> is an environment context that is passed to every handler, and <code>next</code> is a reference to the next function in the pipeline.</p></li>
+</ul><p>When the handler is complete and wishes to pass to the next function in the pipeline, it must call <code>next(env)</code>.</p>
+
+<p><a name="usehandle"></a></p>
+
+<h3>use(handleFunction)</h3>
+
+<p><code>handleFunction</code> is used to set up request and response handlers.  </p>
+
+<div class="highlight"><pre><span class="nx">argo</span><span class="p">()</span>
+  <span class="c1">//For every request add 'X-Custom-Header' with value 'Yippee!'</span>
+  <span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">handle</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">handle</span><span class="p">(</span><span class="s1">'request'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">env</span><span class="p">,</span> <span class="nx">next</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">env</span><span class="p">.</span><span class="nx">request</span><span class="p">.</span><span class="nx">headers</span><span class="p">[</span><span class="s1">'X-Custom-Header'</span><span class="p">]</span> <span class="o">=</span> <span class="s1">'Yippee!'</span><span class="p">;</span>
+      <span class="nx">next</span><span class="p">(</span><span class="nx">env</span><span class="p">);</span>
+    <span class="p">});</span>
+  <span class="p">})</span>
+</pre></div>
+
+<p><a name="usepackage"></a></p>
+
+<h3>use(package)</h3>
+
+<p>Alias for <code>include(package)</code>.</p>
+
+<p><a name="target"></a></p>
+
+<h3>target(uri)</h3>
+
+<p><code>target</code> is used for proxying requests to a backend server.</p>
+
+<ul>
+<li>
+<code>uri</code>: a string pointing to the target URI.</li>
+</ul><p>Example:</p>
+
+<div class="highlight"><pre><span class="nx">argo</span><span class="p">()</span>
+  <span class="p">.</span><span class="nx">target</span><span class="p">(</span><span class="s1">'http://weather.yahooapis.com'</span><span class="p">)</span>
+</pre></div>
+
+<p><a name="route"></a></p>
+
+<h3>route(path, [options], handleFunction)</h3>
+
+<ul>
+<li><p><code>path</code>: a string used to match HTTP Request URI path.</p></li>
+<li><p><code>options</code>: an object with a <code>methods</code> property to filter HTTP methods (e.g., <code>{ methods: ['GET','POST'] }</code>).  Optional.</p></li>
+<li><p><code>handleFunction</code>: Same as in <code>use</code>.</p></li>
+</ul><p>Example:</p>
+
+<div class="highlight"><pre><span class="nx">argo</span><span class="p">()</span>
+  <span class="p">.</span><span class="nx">route</span><span class="p">(</span><span class="s1">'/greeting'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">handle</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">handle</span><span class="p">(</span><span class="s1">'request'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">env</span><span class="p">,</span> <span class="nx">next</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">env</span><span class="p">.</span><span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">=</span> <span class="mi">200</span><span class="p">;</span>
+      <span class="nx">env</span><span class="p">.</span><span class="nx">response</span><span class="p">.</span><span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span> <span class="s1">'Content-Type'</span><span class="o">:</span> <span class="s1">'text/plain'</span> <span class="p">};</span>
+      <span class="nx">env</span><span class="p">.</span><span class="nx">response</span><span class="p">.</span><span class="nx">body</span> <span class="o">=</span> <span class="s1">'Hello World!'</span><span class="p">;</span>
+
+      <span class="nx">next</span><span class="p">(</span><span class="nx">env</span><span class="p">);</span>
+    <span class="p">});</span>
+  <span class="p">})</span>
+</pre></div>
+
+<p><a name="get"></a>
+<a name="post"></a>
+<a name="put"></a>
+<a name="del"></a>
+<a name="options"></a>
+<a name="trace"></a></p>
+
+<h3>get(path, handleFunction)</h3>
+
+<h3>post(path, handleFunction)</h3>
+
+<h3>put(path, handleFunction)</h3>
+
+<h3>del(path, handleFunction)</h3>
+
+<h3>options(path, handleFunction)</h3>
+
+<h3>trace(path, handleFunction)</h3>
+
+<p>Method filters built on top of <code>route</code>.</p>
+
+<p>Example:</p>
+
+<div class="highlight"><pre><span class="nx">argo</span><span class="p">()</span>
+  <span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'/puppies'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">handle</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">handle</span><span class="p">(</span><span class="s1">'request'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">env</span><span class="p">,</span> <span class="nx">next</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">env</span><span class="p">.</span><span class="nx">response</span><span class="p">.</span><span class="nx">body</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">([{</span><span class="nx">name</span><span class="o">:</span> <span class="s1">'Sparky'</span><span class="p">,</span> <span class="nx">breed</span><span class="o">:</span> <span class="s1">'Fox Terrier'</span> <span class="p">}]);</span>
+      <span class="nx">next</span><span class="p">(</span><span class="nx">env</span><span class="p">);</span>
+    <span class="p">});</span>
+  <span class="p">})</span>
+</pre></div>
+
+<p><a name="map"></a></p>
+
+<h3>map(path, [options], argoSegmentFunction)</h3>
+
+<p><code>map</code> is used to delegate control to sub-Argo instances based on a request URI path.</p>
+
+<ul>
+<li><p><code>path</code>: a string used to match the HTTP Request URI path.</p></li>
+<li><p><code>options</code>: an object with a <code>methods</code> property to filter HTTP methods (e.g., <code>{ methods: ['GET','POST'] }</code>).  Optional.</p></li>
+<li><p><code>argoSegmentFunction</code>: a function that is passed an instance of <code>argo</code> for additional setup.</p></li>
+</ul><p>Example:</p>
+
+<div class="highlight"><pre><span class="nx">argo</span><span class="p">()</span>
+  <span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="s1">'/payments'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">server</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">server</span>
+      <span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">oauth</span><span class="p">)</span>
+      <span class="p">.</span><span class="nx">target</span><span class="p">(</span><span class="s1">'http://backend_payment_server'</span><span class="p">);</span>
+  <span class="p">})</span>
+</pre></div>
+
+<p><a name="include"></a></p>
+
+<h3>include(package)</h3>
+
+<ul>
+<li>
+<code>package</code>: An object that contains a <code>package</code> property.</li>
+</ul><p>The <code>package</code> property is a function that takes an argo instance as a paramter and returns an object that contains a <code>name</code> and an <code>install</code> function.</p>
+
+<p>Example:</p>
+
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">superPackage</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">argo</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="p">{</span>
+    <span class="nx">name</span><span class="o">:</span> <span class="s1">'Super Package'</span><span class="p">,</span>
+    <span class="nx">install</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">argo</span>
+        <span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">oauth</span><span class="p">)</span>
+        <span class="p">.</span><span class="nx">route</span><span class="p">(</span><span class="s1">'/super'</span><span class="p">,</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'./super'</span><span class="p">));</span>
+    <span class="p">}</span>
+  <span class="p">};</span>
+<span class="p">};</span>
+
+<span class="nx">argo</span><span class="p">()</span>
+  <span class="p">.</span><span class="nx">include</span><span class="p">({</span> <span class="kr">package</span><span class="o">:</span> <span class="nx">superPackage</span><span class="p">})</span>
+</pre></div>
+
+<p><a name="listen"></a></p>
+
+<h3>listen(port)</h3>
+
+<ul>
+<li>
+<code>port</code>: A port on which the server should listen.</li>
+</ul><h2>Tests</h2>
+
+<p>Unit tests: </p>
+
+<div class="highlight"><pre><span class="nv">$ </span>npm <span class="nb">test</span>
+</pre></div>
+
+<p>Test Coverage:</p>
+
+<div class="highlight"><pre><span class="nv">$ </span>npm run-script coverage
+</pre></div>
+
+<h2>On the Roadmap</h2>
+
+<ul>
+<li>HTTP Caching Support</li>
+<li>Collapsed Forwarding</li>
+<li>Parameterized Routing</li>
+<li>Rate Limiting</li>
+</ul><h2>License</h2>
+
+<p>MIT</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/argo">argo</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
