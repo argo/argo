@@ -2,7 +2,6 @@ var cluster = require('cluster');
 var domain = require('domain');
 var http = require('http');
 var util = require('util');
-var environment = require('./environment');
 
 var Runner = function() {};
 
@@ -41,8 +40,7 @@ Runner.prototype.listen = function(platform, port) {
             requestDomain.dispose();
           }
         });
-        var env = environment(platform, req, res);
-        app.flow(env);
+        app.run(req, res);
       }).listen(port);
     });
   }

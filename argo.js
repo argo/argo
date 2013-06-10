@@ -189,7 +189,16 @@ Argo.prototype.build = function() {
     });
   });
 
-  return that.builder.build();
+  var built = that.builder.build();
+  built._pipeline = this._pipeline;
+
+  var self = this;
+  built.run = function(req, res) {
+    var env = environment(self, req, res);
+    built.flow(env);
+  }
+
+  return built;
 };
 
 Argo.prototype.call = function(env) {
@@ -489,6 +498,8 @@ Argo.prototype._target = function(env, next) {
   }
 };
 
-Argo.prototype.environment = environment;
+var argo = function(_http) { return new Argo(_http); }
+argo.environment = environment;
 
-module.exports = function(_http) { return new Argo(_http) };
+module.exports = argo;
+//module.exports = function(_http) { return new Argo(_http) };
