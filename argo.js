@@ -409,7 +409,8 @@ Argo.prototype._routeResponseHandler = function(router) {
   var that = this;
   return function routeResponseHandler(env, next) {
     if (!env.argo._routed) {
-      if (env.response.statusCode !== 405) {
+      if (env.response.statusCode !== 405
+          && !(env.target && env.target.url)) {
         env.response.statusCode = 404;
       }
 
@@ -453,7 +454,7 @@ Argo.prototype._target = function(env, next) {
     options.path = parsed.path;
 
     options.headers = env.request.headers;
-    options.headers['Connection'] = 'keep-alive';
+    //options.headers['Connection'] = 'keep-alive';
     options.headers['Host'] = options.hostname;
 
     if (parsed.auth) {
@@ -466,10 +467,11 @@ Argo.prototype._target = function(env, next) {
         env.response.setHeader(headerName, res.headers[key]);
       }
 
+      env.response.statusCode = res.statusCode;
+
       env.target.response = res;
 
       if (next) {
-        var duration = (+Date.now() - start);
         next(env);
       }
     });
