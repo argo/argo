@@ -701,7 +701,6 @@ describe('Argo', function() {
       _http.request = function(options, callback) {
         assert.equal(options.method, 'GET');
         assert.equal(options.hostname, 'argotest');
-        assert.equal(options.headers['Connection'], 'keep-alive');
         assert.equal(options.headers['Host'], 'argotest');
         assert.equal(options.path, '/proxy');
         assert.equal(options.auth, 'argo:rocks');

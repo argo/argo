@@ -1,6 +1,7 @@
 var http = require('http');
 var url = require('url');
 var Stream = require('stream');
+var environment = require('./environment');
 var Frame = require('./frame');
 var Builder = require('./builder');
 var runner = require('./runner');
@@ -487,5 +488,7 @@ Argo.prototype._target = function(env, next) {
     next(env);
   }
 };
+
+Argo.prototype.environment = environment;
 
 module.exports = function(_http) { return new Argo(_http) };
