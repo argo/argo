@@ -6,11 +6,18 @@ var Frame = require('./frame');
 var Builder = require('./builder');
 var runner = require('./runner');
 
+// Maximum number of sockets to keep alive per target host
+// TODO make this configurable
+var SocketPoolSize = 1024;
+
 var Argo = function(_http) {
   this._router = {};
   this._routerKeys = [];
   this.builder = new Builder();
   this._http = _http || http;
+
+  this._agent = new this._http.Agent();
+  this._agent.maxSockets = SocketPoolSize;
 
   var that = this;
   var incoming = this._http.IncomingMessage.prototype;
@@ -454,9 +461,7 @@ Argo.prototype._target = function(env, next) {
     var options = {};
     options.method = env.request.method || 'GET';
 
-    // TODO: Make Agent configurable.
-    options.agent = new env.argo._http.Agent();
-    options.agent.maxSockets = 1024;
+    options.agent = env.argo._agent;
 
     var parsed = url.parse(env.target.url);
     options.hostname = parsed.hostname;
@@ -485,6 +490,13 @@ Argo.prototype._target = function(env, next) {
         next(env);
       }
     });
+
+    req.on('error', function(err) {
+      // Error connecting to the target or target not available -- respond with an error
+      env.response.writeHead(503);
+      req.socket.destroy();
+    });
+
 
     env.request.getBody(function(err, body) {
       if (body) {
