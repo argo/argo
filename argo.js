@@ -493,10 +493,10 @@ Argo.prototype._target = function(env, next) {
 
     req.on('error', function(err) {
       // Error connecting to the target or target not available -- respond with an error
-      env.response.writeHead(503);
+      env.response.statusCode = 503;
       req.socket.destroy();
+      next(env);
     });
-
 
     env.request.getBody(function(err, body) {
       if (body) {
