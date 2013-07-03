@@ -1,4 +1,5 @@
 var http = require('http');
+var https = require('https');
 var url = require('url');
 var Stream = require('stream');
 var environment = require('./environment');
@@ -9,6 +10,7 @@ var runner = require('./runner');
 // Maximum number of sockets to keep alive per target host
 // TODO make this configurable
 var SocketPoolSize = 1024;
+var _httpAgent, _httpsAgent;
 
 var Argo = function(_http) {
   this._router = {};
@@ -16,8 +18,10 @@ var Argo = function(_http) {
   this.builder = new Builder();
   this._http = _http || http;
 
-  this._agent = new this._http.Agent();
-  this._agent.maxSockets = SocketPoolSize;
+  _httpAgent = new this._http.Agent();
+  _httpsAgent = new https.Agent();
+
+  _httpAgent.maxSockets = _httpsAgent.maxSockets = SocketPoolSize;
 
   var that = this;
   var incoming = this._http.IncomingMessage.prototype;
@@ -59,6 +63,10 @@ Argo.prototype._getBody = function() {
     this.on('data', function(chunk) {
       buf.push(chunk);
       len += chunk.length;
+    });
+
+    this.on('error', function(err) {
+      callback(err);
     });
 
     this.on('end', function() {
@@ -455,7 +463,6 @@ Argo.prototype._target = function(env, next) {
     next(env);
     return;
   }
-  var start = +Date.now();
 
   if (env.target && env.target.url) {
     var options = {};
@@ -464,9 +471,11 @@ Argo.prototype._target = function(env, next) {
     options.agent = env.argo._agent;
 
     var parsed = url.parse(env.target.url);
+    var isSecure = parsed.protocol === 'https:';
     options.hostname = parsed.hostname;
-    options.port = parsed.port || 80;
+    options.port = parsed.port || (isSecure ? 443 : 80);
     options.path = parsed.path;
+    options.agent = (isSecure ? _httpsAgent : _httpAgent);
 
     options.headers = env.request.headers;
     //options.headers['Connection'] = 'keep-alive';
@@ -476,7 +485,9 @@ Argo.prototype._target = function(env, next) {
       options.auth = parsed.auth;
     }
 
-    var req = env.argo._http.request(options, function(res) {
+    var client = (isSecure ? https : env.argo._http);
+
+    var req = client.request(options, function(res) {
       for (var key in res.headers) {
         var headerName = res._rawHeaderNames[key] || key;
         env.response.setHeader(headerName, res.headers[key]);
