@@ -338,6 +338,7 @@ describe('Argo', function() {
       var _http = {};
       _http.IncomingMessage = Request;
       _http.ServerResponse = Response;
+      _http.Agent = function() {};
 
       argo(_http)
         .use(function(handle) {
@@ -371,6 +372,7 @@ describe('Argo', function() {
         var _http = {};
         _http.IncomingMessage = Request;
         _http.ServerResponse = Response;
+        _http.Agent = function() {};
 
         argo(_http)
           .use(function(handle) {
@@ -398,6 +400,7 @@ describe('Argo', function() {
         var _http = {};
         _http.IncomingMessage = Request;
         _http.ServerResponse = Response;
+        _http.Agent = function() {};
 
         argo(_http)
           .use(function(handle) {
@@ -427,6 +430,7 @@ describe('Argo', function() {
       var _http = {};
       _http.IncomingMessage = Request;
       _http.ServerResponse = Response;
+      _http.Agent = function() {};
 
       argo(_http)
         .use(function(handle) {
@@ -462,6 +466,7 @@ describe('Argo', function() {
         var _http = {};
         _http.IncomingMessage = Request;
         _http.ServerResponse = Response;
+        _http.Agent = function() {};
 
         argo(_http)
           .use(function(handle) {
@@ -490,6 +495,7 @@ describe('Argo', function() {
         var _http = {};
         _http.IncomingMessage = Request;
         _http.ServerResponse = Response;
+        _http.Agent = function() {};
 
         argo(_http)
           .use(function(handle) {
@@ -674,9 +680,9 @@ describe('Argo', function() {
       env.response._headerSent = true;
 
       var _http = function() {};
-      _http.Agent = function() {};
       _http.IncomingMessage = Request;
       _http.ServerResponse = Response;
+      _http.Agent = function() {};
 
       argo(_http)
         .use(function(handle) {
@@ -710,7 +716,8 @@ describe('Argo', function() {
             assert.equal(str, 'body');
             done();
           },
-          end: function() {}
+          end: function() {},
+          on: function() {}
         };
       };
 
@@ -743,10 +750,47 @@ describe('Argo', function() {
         res._rawHeaderNames = { 'x-stuff': 'X-Stuff' };
         res.headers = { 'X-Stuff': 'yep' };
         callback(res);
-        return { end: done };
+        return { end: done, on: function() {} };
       };
 
       argo(_http)
+        .target('http://google.com')
+        .call(env);
+
+      env.request.emit('end');
+    });
+
+    it('sets the status code to 503 on target error', function(done) {
+      var env = _getEnv();
+
+      env.request.method = 'GET';
+      env.request.url = '/proxy';
+      env.response.body = 'proxied!';
+
+      var _http = function() {};
+      _http.Agent = function() {};
+      _http.IncomingMessage = Request;
+      _http.ServerResponse = Response;
+      _http.request = function(options, callback) {
+        var req = new EventEmitter();
+        var end = function() {
+          req.emit('error', new Error('fake error'));
+        };
+
+        return {
+          end: end,
+          on: req.on.bind(req),
+          socket: { destroy: function() {} }
+        };
+      };
+
+      argo(_http)
+        .use(function(handle) {
+          handle('response', function(env, next) {
+            assert.equal(env.response.statusCode, 503);
+            done();
+          });
+        })
         .target('http://google.com')
         .call(env);
 
