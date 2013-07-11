@@ -379,7 +379,7 @@ Argo.prototype._routeRequestHandler = function(router) {
       routerKey = '/';
     } else {
       that._routerKeys.forEach(function(key) {
-        if (!routerKey && key !== '*' && search.search(key) !== -1 && key !== '/') {
+        if (!routerKey && key !== '*' && search.search(new RegExp('^' + key)) !== -1 && key !== '/') {
           routerKey = key;
         }
       });
