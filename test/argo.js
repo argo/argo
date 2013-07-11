@@ -729,6 +729,45 @@ describe('Argo', function() {
       env.request.emit('end');
     });
 
+
+    it('targets a proxy only once', function(done) {
+      var env = _getEnv();
+      env.request.url = '/map';
+      env.request.method = 'GET';
+
+      var count = 0;
+
+      var _http = function() {};
+      _http.Agent = function() {};
+      _http.IncomingMessage = Request;
+      _http.ServerResponse = Response;
+      _http.request = function(options, callback) {
+        count++;
+        var res = new Response();
+        callback(res);
+        return {
+          write: function() {},
+          end: function() {},
+          on: function() {}
+        };
+      };
+
+      argo(_http)
+        .use(function(handle) {
+          handle('response', function(env, next) {
+            assert.equal(count, 1);
+            done();
+            next(env);
+          });
+        })
+        .map('/map', function(proxy) {
+          proxy
+            .target('http://proxy');
+        })
+        .target('http://argo')
+        .call(env);
+    });
+
     it('copies raw headers to the response', function(done) {
       var env = _getEnv();
 

@@ -4,4 +4,6 @@ module.exports = function Frame() {
   this.routed = false;
   this.routeUri = null;
   this.oncomplete = null;
+  this.targetUrl = null;
+  this.mapped = false;
 };

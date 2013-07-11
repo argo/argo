@@ -142,7 +142,7 @@ Argo.prototype.buildCore = function() {
     });
   });
 
-  var hasRoutes = false;
+  /*var hasRoutes = false;
   for (var prop in that._router) {
     if (!hasRoutes && that._router.hasOwnProperty(prop)) {
       hasRoutes = true;
@@ -153,7 +153,7 @@ Argo.prototype.buildCore = function() {
     that.builder.use(function addRouteHandlers(handlers) { 
      that._route(that._router, handlers);
     });
-  }
+  }*/
 };
 
 Argo.prototype.build = function() {
@@ -248,6 +248,10 @@ Argo.prototype.route = function(path, options, handlers) {
     return 0;
   });
 
+  that.builder.use(function addRouteHandlers(handlers) { 
+   that._route(that._router, handlers);
+  });
+
   return this;
 };
 
@@ -283,8 +287,9 @@ Argo.prototype.map = function(path, options, handler) {
     this._router[path] = {};
   }
 
+  var that = this;
   function generateHandler(path, handler) {
-    var argo = new Argo();
+    var argo = new Argo(that._http);
     handler(argo);
 
     var app = argo.embed();
@@ -295,10 +300,14 @@ Argo.prototype.map = function(path, options, handler) {
         
         var frame = new Frame();
         frame.routed = env.argo._routed;
+        frame.mapped = env.argo.mapped;
         frame.routedResponseHandler = env.argo._routedResponseHandler;
+        frame.targetUrl = env.target.url;
 
         env.argo._routed = false;
+        env.argo._mapped = true;
         env.argo._routedResponseHandler = null;
+        env.target.url = null;
 
         if (env.request.url[env.request.url.length - 1] === '/') {
           env.request.url = env.request.url.substr(0, env.request.url.length - 1);
@@ -332,6 +341,8 @@ Argo.prototype.map = function(path, options, handler) {
           env.argo._routedResponseHandler = frame.routedResponseHandler;
           env.request.url = frame.routeUri + env.request.url;
           env.argo.oncomplete = frame.oncomplete;
+          env.target.url = frame.targetUrl;
+          env.argo._mapped = frame.mapped;
 
           next(env);
         };
@@ -371,7 +382,7 @@ function RouteHandlers() {
 Argo.prototype._routeRequestHandler = function(router) {
   var that = this;
   return function routeRequestHandler(env, next) {
-    if (env.argo.bypassRoute) {
+    if (env.argo.bypassRoute || env.argo._routed) {
       return next(env);
     }
 
@@ -464,6 +475,8 @@ Argo.prototype._target = function(env, next) {
     return;
   }
 
+  env.target.skip = true;
+
   if (env.target && env.target.url) {
     var options = {};
     options.method = env.request.method || 'GET';
@@ -487,6 +500,7 @@ Argo.prototype._target = function(env, next) {
 
     var client = (isSecure ? https : env.argo._http);
 
+    env.argo._routed = true;
     var req = client.request(options, function(res) {
       for (var key in res.headers) {
         var headerName = res._rawHeaderNames[key] || key;
@@ -496,6 +510,7 @@ Argo.prototype._target = function(env, next) {
       env.response.statusCode = res.statusCode;
 
       env.target.response = res;
+
 
       if (next) {
         next(env);
