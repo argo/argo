@@ -141,19 +141,6 @@ Argo.prototype.buildCore = function() {
       next(env);
     });
   });
-
-  /*var hasRoutes = false;
-  for (var prop in that._router) {
-    if (!hasRoutes && that._router.hasOwnProperty(prop)) {
-      hasRoutes = true;
-    }
-  }
-
-  if (hasRoutes) {
-    that.builder.use(function addRouteHandlers(handlers) { 
-     that._route(that._router, handlers);
-    });
-  }*/
 };
 
 Argo.prototype.build = function() {
@@ -300,12 +287,10 @@ Argo.prototype.map = function(path, options, handler) {
         
         var frame = new Frame();
         frame.routed = env.argo._routed;
-        frame.mapped = env.argo.mapped;
         frame.routedResponseHandler = env.argo._routedResponseHandler;
         frame.targetUrl = env.target.url;
 
         env.argo._routed = false;
-        env.argo._mapped = true;
         env.argo._routedResponseHandler = null;
         env.target.url = null;
 
@@ -342,7 +327,6 @@ Argo.prototype.map = function(path, options, handler) {
           env.request.url = frame.routeUri + env.request.url;
           env.argo.oncomplete = frame.oncomplete;
           env.target.url = frame.targetUrl;
-          env.argo._mapped = frame.mapped;
 
           next(env);
         };

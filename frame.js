@@ -5,5 +5,4 @@ module.exports = function Frame() {
   this.routeUri = null;
   this.oncomplete = null;
   this.targetUrl = null;
-  this.mapped = false;
 };
