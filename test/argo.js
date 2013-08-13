@@ -5,6 +5,7 @@ var http = require('http');
 var Stream = require('stream');
 var argo = require('../');
 var util = require('util');
+var Environment = require('../environment');
 
 function Request() {
   this.headers = {};
@@ -339,6 +340,62 @@ describe('Argo', function() {
   });
 
   describe('request buffering', function() {
+    it('responds to error events', function(done){
+      var env = _getEnv();
+      env.request = new Request();
+      env.target.response = new Response();
+      env.response = new Response();
+
+      var _http = {};
+      _http.IncomingMessage = Request;
+      _http.ServerResponse = Response;
+      _http.Agent = function() {};
+
+      argo(_http)
+        .use(function(handle) {
+          handle('response', function(env, next) {
+            env.request.getBody(function(err, body) {
+              assert.equal(err.message, 'Test!');
+              done();
+            });
+          });
+        })
+        .call(env);
+
+      env.request.emit('error', new Error("Test!"));
+    });
+
+    it('caches body after retrieval', function(done){
+      var env = _getEnv();
+      env.request = new Request();
+      env.target.response = new Response();
+      env.response = new Response();
+
+      var _http = {};
+      _http.IncomingMessage = Request;
+      _http.ServerResponse = Response;
+      _http.Agent = function() {};
+
+      argo(_http)
+        .use(function(handle) {
+          handle('response', function(env, next) {
+            env.request.getBody(function(err, body) {
+              env.request.getBody(function(err, body) {
+                assert.equal(body.toString(), env.request.body.toString());
+                done();
+              });
+            });
+          });
+        })
+        .call(env);
+
+      env.request.emit('data', new Buffer('Hello '));
+      env.request.emit('data', new Buffer('Buffered '));
+      env.request.emit('data', new Buffer('Request!'));
+      env.request.emit('end');
+
+    });
+
     it('only buffers once', function(done) {
       var env = _getEnv();
       env.request = new Request();

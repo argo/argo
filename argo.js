@@ -298,13 +298,6 @@ Argo.prototype.map = function(path, options, handler) {
           env.request.url = env.request.url.substr(0, env.request.url.length - 1);
         }
 
-        if (env.argo.frames.length) {
-          pathLength = 0;
-          env.argo.frames.forEach(function(frame) {
-            pathLength += frame.routeUri.length;
-          });
-        }
-
         frame.routeUri = path || '/';
 
         env.request.url = env.request.url.substr(frame.routeUri.length);
