@@ -124,6 +124,16 @@ describe('Argo', function() {
         assert.ok(wasCalled);
       });
 
+      it('enqueues a custom event middleware', function(){
+        var server = argo();
+        server.use(function(handle){
+          handle('custom', function(env, next){
+            assert.ok('custom' in server.builder.pipelineMap);
+          });
+        });
+        server.call(_getEnv());
+      });
+
       it('enqueues a middleware response handler', function() {
         var server = argo();
         var wasCalled = false;
