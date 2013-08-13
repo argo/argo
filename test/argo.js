@@ -129,10 +129,10 @@ describe('Argo', function() {
         var server = argo();
         server.use(function(handle){
           handle('custom', function(env, next){
-            assert.ok('custom' in server.builder.pipelineMap);
           });
         });
         server.call(_getEnv());
+        assert.ok('custom' in server.builder.pipelineMap);
       });
 
       it('enqueues a middleware response handler', function() {
@@ -416,14 +416,6 @@ describe('Argo', function() {
             });
           });
         })
-        .use(function(handle) {
-          handle('response', function(env, next) {
-            env.request.getBody(function(err, body) {
-              assert.equal(body.toString(), 'Hello Buffered Request!');
-              next(env);
-            });
-          });
-        })
         .call(env);
 
       env.request.emit('data', new Buffer('Hello '));
@@ -505,14 +497,6 @@ describe('Argo', function() {
             env.target.response.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Response!');
               done();
-            });
-          });
-        })
-        .use(function(handle) {
-          handle('response', function(env, next) {
-            env.target.response.getBody(function(err, body) {
-              assert.equal(body.toString(), 'Hello Buffered Response!');
-              next(env);
             });
           });
         })
