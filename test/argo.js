@@ -135,6 +135,17 @@ describe('Argo', function() {
         assert.ok('custom' in server.builder.pipelineMap);
       });
 
+      it('can access custom pipelines using _pipeline', function(){
+        var server = argo();
+        server.use(function(handle){
+          handle('custom', function(env, next){
+          });
+        });
+        server.call(_getEnv());
+        var pipe = server._pipeline('custom');
+        assert.ok(typeof pipe !== "undefined");
+      });
+
       it('enqueues a middleware response handler', function() {
         var server = argo();
         var wasCalled = false;
@@ -228,6 +239,20 @@ describe('Argo', function() {
           });
         })
         .route('/route', function(handle) {
+        })
+        .call(env);
+    });
+
+    it('skips over multiple routes that are chained together', function(done){
+      var env = _getEnv();
+      env.request.url = '/goodbye';
+      env.request.method = 'GET';
+
+      argo()
+        .get('/hello', function(handle){})
+        .get('/goodbye', function(handle){
+          assert.equal(env.request.url, '/goodbye');
+            done();
         })
         .call(env);
     });
