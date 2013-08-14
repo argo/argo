@@ -5,6 +5,7 @@ var http = require('http');
 var Stream = require('stream');
 var argo = require('../');
 var util = require('util');
+var Environment = require('../environment');
 
 function Request() {
   this.headers = {};
@@ -124,6 +125,27 @@ describe('Argo', function() {
         assert.ok(wasCalled);
       });
 
+      it('enqueues a custom event middleware', function(){
+        var server = argo();
+        server.use(function(handle){
+          handle('custom', function(env, next){
+          });
+        });
+        server.call(_getEnv());
+        assert.ok('custom' in server.builder.pipelineMap);
+      });
+
+      it('can access custom pipelines using _pipeline', function(){
+        var server = argo();
+        server.use(function(handle){
+          handle('custom', function(env, next){
+          });
+        });
+        server.call(_getEnv());
+        var pipe = server._pipeline('custom');
+        assert.ok(typeof pipe !== "undefined");
+      });
+
       it('enqueues a middleware response handler', function() {
         var server = argo();
         var wasCalled = false;
@@ -221,6 +243,20 @@ describe('Argo', function() {
         .call(env);
     });
 
+    it('skips over multiple routes that are chained together', function(done){
+      var env = _getEnv();
+      env.request.url = '/goodbye';
+      env.request.method = 'GET';
+
+      argo()
+        .get('/hello', function(handle){})
+        .get('/goodbye', function(handle){
+          assert.equal(env.request.url, '/goodbye');
+            done();
+        })
+        .call(env);
+    });
+
     it('returns the longest possible match first', function(done) {
       var env = _getEnv();
       env.request.url = '/route/that/matches/first';
@@ -307,6 +343,27 @@ describe('Argo', function() {
           .call(env);
       });
 
+      it('executes the route without a trailing slash with multiple maps', function(done) {
+        var env = _getEnv();
+        env.request.url = '/map/map2/sub';
+        env.request.method = 'GET';
+
+        argo()
+          .map('/map', function(server) {
+            server
+              .map('/map2', function(serverTwo){
+                serverTwo.route('/sub', function(handle) {
+                  handle('request', function(env, next) {
+                    assert.equal(env.request.url, '/sub');
+                    done();
+                    next(env);
+                  });
+                });
+              })
+          })
+          .call(env);
+      });
+
       it('executes the route with a trailing slash', function(done) {
         var env = _getEnv();
         env.request.url = '/map/sub/';
@@ -329,6 +386,62 @@ describe('Argo', function() {
   });
 
   describe('request buffering', function() {
+    it('responds to error events', function(done){
+      var env = _getEnv();
+      env.request = new Request();
+      env.target.response = new Response();
+      env.response = new Response();
+
+      var _http = {};
+      _http.IncomingMessage = Request;
+      _http.ServerResponse = Response;
+      _http.Agent = function() {};
+
+      argo(_http)
+        .use(function(handle) {
+          handle('response', function(env, next) {
+            env.request.getBody(function(err, body) {
+              assert.equal(err.message, 'Test!');
+              done();
+            });
+          });
+        })
+        .call(env);
+
+      env.request.emit('error', new Error("Test!"));
+    });
+
+    it('caches body after retrieval', function(done){
+      var env = _getEnv();
+      env.request = new Request();
+      env.target.response = new Response();
+      env.response = new Response();
+
+      var _http = {};
+      _http.IncomingMessage = Request;
+      _http.ServerResponse = Response;
+      _http.Agent = function() {};
+
+      argo(_http)
+        .use(function(handle) {
+          handle('response', function(env, next) {
+            env.request.getBody(function(err, body) {
+              env.request.getBody(function(err, body) {
+                assert.equal(body.toString(), env.request.body.toString());
+                done();
+              });
+            });
+          });
+        })
+        .call(env);
+
+      env.request.emit('data', new Buffer('Hello '));
+      env.request.emit('data', new Buffer('Buffered '));
+      env.request.emit('data', new Buffer('Request!'));
+      env.request.emit('end');
+
+    });
+
     it('only buffers once', function(done) {
       var env = _getEnv();
       env.request = new Request();
@@ -346,14 +459,6 @@ describe('Argo', function() {
             env.request.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Request!');
               done();
-            });
-          });
-        })
-        .use(function(handle) {
-          handle('response', function(env, next) {
-            env.request.getBody(function(err, body) {
-              assert.equal(body.toString(), 'Hello Buffered Request!');
-              next(env);
             });
           });
         })
@@ -438,14 +543,6 @@ describe('Argo', function() {
             env.target.response.getBody(function(err, body) {
               assert.equal(body.toString(), 'Hello Buffered Response!');
               done();
-            });
-          });
-        })
-        .use(function(handle) {
-          handle('response', function(env, next) {
-            env.target.response.getBody(function(err, body) {
-              assert.equal(body.toString(), 'Hello Buffered Response!');
-              next(env);
             });
           });
         })
