@@ -343,6 +343,27 @@ describe('Argo', function() {
           .call(env);
       });
 
+      it('executes the route without a trailing slash with multiple maps', function(done) {
+        var env = _getEnv();
+        env.request.url = '/map/map2/sub';
+        env.request.method = 'GET';
+
+        argo()
+          .map('/map', function(server) {
+            server
+              .map('/map2', function(serverTwo){
+                serverTwo.route('/sub', function(handle) {
+                  handle('request', function(env, next) {
+                    assert.equal(env.request.url, '/sub');
+                    done();
+                    next(env);
+                  });
+                });
+              })
+          })
+          .call(env);
+      });
+
       it('executes the route with a trailing slash', function(done) {
         var env = _getEnv();
         env.request.url = '/map/sub/';
