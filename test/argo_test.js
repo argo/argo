@@ -753,6 +753,24 @@ describe('Argo', function() {
     });
   });
 
+  describe('#run', function() {
+    it('works as a request listener', function(done) {
+      var proxy = argo()
+        .get('/sheep', function(handle) {
+          handle('request', function(env, next) {
+            assert.equal(env.request.token, 'worked');
+            done();
+          });
+        })
+        .build()
+
+      var request = { method: 'GET', url: '/sheep', token: 'worked' };
+      var response = {};
+
+      proxy.run(request, response);
+    });
+  });
+
   describe('method routing', function() {
     it('returns a 405 Method Not Allowed on unsupported methods', function(done) {
       var env = _getEnv();
