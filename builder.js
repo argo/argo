@@ -8,6 +8,7 @@ function Builder() {
     'request': this._requestPipeline,
     'response': this._responsePipeline,
   };
+  this.errorHandler = null;
   this.app = null;
 }
 
@@ -20,6 +21,12 @@ Builder.prototype.run = function(app) {
 };
 
 Builder.prototype.buildHandler = function eventedBuildHandler(event, options, handler) {
+  if (event === 'error') {
+    if (typeof options === 'function') {
+      this.errorHandler = options;
+    }
+  }
+
   if (!(event in this.pipelineMap)) {
     this.pipelineMap[event] = pipeworks();
   }
@@ -34,6 +41,10 @@ Builder.prototype.build = function() {
   });
 
   var pipeline = this._requestPipeline.fit(this.app).join(this._responsePipeline);
+
+  if (this.errorHandler) {
+    pipeline.fault(this.errorHandler);
+  }
 
   return pipeline.build();
 };
