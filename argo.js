@@ -277,6 +277,10 @@ Argo.prototype.map = function(path, options, handler) {
   var that = this;
   function generateHandler(path, handler) {
     var argo = new Argo(that._http);
+    if (that.builder.errorHandler) {
+      argo.builder.errorHandler = that.builder.errorHandler;
+    }
+
     handler(argo);
 
     var app = argo.embed();
@@ -300,7 +304,10 @@ Argo.prototype.map = function(path, options, handler) {
 
         frame.routeUri = path || '/';
 
-        env.request.url = env.request.url.substr(frame.routeUri.length);
+        if (path !== '/' && path !== '*') {
+          env.request.url = env.request.url.substr(frame.routeUri.length);
+        }
+
         env.request.url = env.request.url || '/';
 
         // TODO: See if this can work in a response handler here.

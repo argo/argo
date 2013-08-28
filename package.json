@@ -21,6 +21,6 @@
     "mocha": "~1.8.1"
   },
   "dependencies": {
-    "pipeworks": "0.0.9"
+    "pipeworks": "1.2.x"
   }
 }
