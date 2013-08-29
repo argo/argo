@@ -113,6 +113,7 @@ $ npm install argo
 * [map](#map)
 * [include](#include)
 * [listen](#listen)
+* [Error Handling](#error-handling)
 
 
 ## Usage
@@ -259,6 +260,40 @@ argo()
 ### listen(port)
 
 * `port`: A port on which the server should listen.
+
+<a name="error-handling"/>
+### Error Handling
+
+Argo allows a special `error` handler for capturing state when an error occurs.
+
+```javascript
+argo()
+  .use(function(handle) {
+    handle('error', function(env, error, next) {
+      console.log(error.message);
+      env.response.statusCode = 500;
+      env.response.body = 'Internal Server Error';
+      next(env);
+      process.exit();
+    });
+  })
+  .get('/', function(handle) {
+    handle('request', function(env, next) {
+      env.response.body = 'Hello World!';
+      next(env);
+    });
+  })
+  .get('/explode', function(handle) {
+    handle('request', function(env, next) {
+      setImmediate(function() { throw new Error('Ahoy!'); });
+    });
+  })
+  .listen(3000);
+```
+
+Unlike other named pipelines, there should be only one error handler assigned to an Argo server.
+
+See `[cluster.js](https://github.com/argo/argo/blob/master/example/cluster.js)` for an example of using error handling to restart workers in a cluster.
 
 ## Tests
 
