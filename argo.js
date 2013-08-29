@@ -5,7 +5,6 @@ var Stream = require('stream');
 var environment = require('./environment');
 var Frame = require('./frame');
 var Builder = require('./builder');
-var runner = require('./runner');
 
 // Maximum number of sockets to keep alive per target host
 // TODO make this configurable
@@ -96,7 +95,10 @@ Argo.prototype.include = function(mod) {
 };
 
 Argo.prototype.listen = function(port) {
-  runner.listen(this, port);
+  var app = this.build();
+
+  this._http.createServer(app.run).listen(port);
+
   return this;
 };
 
@@ -277,9 +279,6 @@ Argo.prototype.map = function(path, options, handler) {
   var that = this;
   function generateHandler(path, handler) {
     var argo = new Argo(that._http);
-    if (that.builder.errorHandler) {
-      argo.builder.errorHandler = that.builder.errorHandler;
-    }
 
     handler(argo);
 

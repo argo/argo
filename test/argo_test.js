@@ -75,20 +75,23 @@ describe('Argo', function() {
   });
 
   describe('#listen', function() {
-    it('delegates to Runner#listen', function() {
-      var runner = require('../runner');
-      var wasCalled = false;
-      var _listen = runner.listen;
-
-      runner.listen = function() {
-        wasCalled = true;
+    it('calls http server listen', function(done) {
+      var Http = function() {};
+      Http.prototype.createServer = function() {
+        return this;
       };
 
-      argo().listen(1234);
+      Http.prototype.listen = function(port) {
+        assert.equal(port, 1234);
+        done();
+      };
 
-      runner.listen = _listen;
+      var _http = new Http();
+      _http.IncomingMessage = Request;
+      _http.ServerResponse = Response;
+      _http.Agent = function() {};
 
-      assert.ok(wasCalled);
+      argo(_http).listen(1234);
     });
   });
 
@@ -1030,6 +1033,32 @@ describe('Argo', function() {
             env.response.statusCode = 200;
             env.response.headers['Content-Length'] = 0;
             next(env);
+          });
+        })
+        .call(env);
+    });
+  });
+
+  describe('error handling', function() {
+    it('captures state on exception', function(done) {
+      var env = _getEnv();
+      env.request = new Request();
+      env.request.url = '/yo';
+      env.request.method = 'GET';
+      env.response = new Response();
+
+      argo()
+        .use(function(handle) {
+          handle('error', function(env, error, next) {
+            assert.equal(env.token, 'TADA!');
+            assert.equal(error.message, 'KAPOW!');
+            done();
+          });
+        })
+        .get('/yo', function(handle) {
+          handle('request', function(env, next) {
+            env.token = 'TADA!';
+            process.nextTick(function() { throw new Error('KAPOW!'); });
           });
         })
         .call(env);
