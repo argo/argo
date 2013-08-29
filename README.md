@@ -264,7 +264,7 @@ argo()
 <a name="error-handling"/>
 ### Error Handling
 
-Argo allows a special `error` handler for capturing state when an error occurs.
+Argo allows a special `error` handler for capturing state when an uncaught exception occurs.
 
 ```javascript
 argo()
@@ -291,9 +291,9 @@ argo()
   .listen(3000);
 ```
 
-Unlike other named pipelines, there should be only one error handler assigned to an Argo server.
+Unlike other named pipelines, there should be only one error handler assigned to an Argo server. It is recommended to exit the process once an error has been handled. This feature uses [domains](http://nodejs.org/api/domain.html).
 
-See `[cluster.js](https://github.com/argo/argo/blob/master/example/cluster.js)` for an example of using error handling to restart workers in a cluster.
+See [`cluster.js`](https://github.com/argo/argo/blob/master/example/cluster.js) for an example of using error handling to restart workers in a cluster.
 
 ## Tests
 
