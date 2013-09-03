@@ -17,7 +17,7 @@ argo()
           next(env);
         });
       })
-      .get('^/greeting/([^\/]*)$', function(handle) {
+      .get('^/greeting/([^\/]+)$', function(handle) {
         handle('request', function(env, next) {
           console.log(env.request.params);
           var name = env.request.params[1];

@@ -5,6 +5,7 @@ var Stream = require('stream');
 var environment = require('./environment');
 var Frame = require('./frame');
 var Builder = require('./builder');
+var RegExpRouter = require('./regexp_router');
 
 // Maximum number of sockets to keep alive per target host
 // TODO make this configurable
@@ -12,8 +13,7 @@ var SocketPoolSize = 1024;
 var _httpAgent, _httpsAgent;
 
 var Argo = function(_http) {
-  this._router = {};
-  this._routerKeys = [];
+  this.router = RegExpRouter.create();
   this.builder = new Builder();
   this._http = _http || http;
 
@@ -210,26 +210,21 @@ Argo.prototype.call = function(env) {
   return app.flow(env);
 }
 
-Argo.prototype.route = function(path, options, handlers) {
+Argo.prototype.route = function(path, options, handleFn) {
   if (typeof(options) === 'function') {
-    handlers = options;
+    handleFn = options;
     options = {};
   }
 
   options.methods = options.methods || ['*'];
-  if (!this._router[path]) {
-    this._router[path] = {};
-  }
 
   var that = this;
   options.methods.forEach(function(method) {
-    that._router[path][method.toLowerCase()] = handlers;
+    that.router.add(path, method.toLowerCase(), handleFn);
   });
 
-  that._routerKeys.push(path);
-
-  that.builder.use(function addRouteHandlers(handlers) { 
-   that._route(that._router, handlers);
+  that.builder.use(function addRouteHandleFn(handleFn) { 
+   that._route(that.router, handleFn);
   });
 
   return this;
@@ -263,9 +258,6 @@ Argo.prototype.map = function(path, options, handler) {
   }
 
   options.methods = options.methods || ['*'];
-  if (!this._router[path]) {
-    this._router[path] = {};
-  }
 
   var that = this;
   function generateHandler(path, handler) {
@@ -292,20 +284,9 @@ Argo.prototype.map = function(path, options, handler) {
           env.request.url = env.request.url.substr(0, env.request.url.length - 1);
         }
 
-        frame.routeUri = path || '^/';
+        frame.routeUri = path;
 
-        if (path !== '/' && path !== '*') {
-          var search = frame.routeUri;
-          if (search[0] !== '^') {
-            search = '^' + search;
-          }
-
-          var re = new RegExp(search);
-
-          env.request.url = env.request.url.replace(re, '');
-        }
-
-        env.request.url = env.request.url || '/';
+        env.request.url = that.router.truncate(env.request.url, frame.routeUri) || '/';
 
         // TODO: See if this can work in a response handler here.
         
@@ -367,48 +348,16 @@ Argo.prototype._routeRequestHandler = function(router) {
       return next(env);
     }
 
-    env.argo._routed = false;
+    var routeResult = router.find(env.request.url, env.request.method);
 
-    var search = env.request.url;
-
-    var routerKey;
-    var found = false;
-
-    that._routerKeys.forEach(function(key) {
-      if (found || key === '*') {
-        return;
-      }
-
-      var re = new RegExp(key);
-      var testMatch = re.test(search);
-
-      if (!routerKey && key !== '*' && testMatch) {
-        found = true;
-        routerKey = key;
-        env.request.params = re.exec(search);
-      }
-    });
-
-    if (!routerKey && that._router['*']) {
-      routerKey = '*';
-    }
-
-    if (routerKey &&
-        (!router[routerKey][env.request.method.toLowerCase()] &&
-         !router[routerKey]['*'])) {
-      env.response.statusCode = 405;
-      next(env);
-      return;
-    }
-
-    if (routerKey &&
-        (router[routerKey][env.request.method.toLowerCase()] ||
-         router[routerKey]['*'])) {
+    if (!routeResult.warning) {
       env.argo._routed = true;
 
-      var method = env.request.method.toLowerCase();
-      var fn = router[routerKey][method] ? router[routerKey][method] 
-        : router[routerKey]['*'];
+      if (routeResult.params) {
+        env.request.params = routeResult.params;
+      }
+
+      var fn = routeResult.handlerFn;
 
       var handlers = new RouteHandlers();
       fn(that._addRouteHandlers(handlers));
@@ -421,10 +370,12 @@ Argo.prototype._routeRequestHandler = function(router) {
         next(env);
         return;
       }
-    }
-    
-    if (!env.argo._routed) {
-      next(env);
+    } else if (routeResult.warning === 'MethodNotSupported') {
+      env.response.statusCode = 405;
+      return next(env);
+    } else {
+      env.argo._routed = false;
+      return next(env);
     }
   };
 };
