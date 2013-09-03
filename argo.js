@@ -216,15 +216,11 @@ Argo.prototype.route = function(path, options, handleFn) {
     options = {};
   }
 
-  options.methods = options.methods || ['*'];
+  this.router.add(path, options.methods, handleFn);
 
-  var that = this;
-  options.methods.forEach(function(method) {
-    that.router.add(path, method.toLowerCase(), handleFn);
-  });
-
-  that.builder.use(function addRouteHandleFn(handleFn) { 
-   that._route(that.router, handleFn);
+  var self = this;
+  this.builder.use(function addRouteHandleFn(handleFn) { 
+   self._route(self.router, handleFn);
   });
 
   return this;
@@ -256,8 +252,6 @@ Argo.prototype.map = function(path, options, handler) {
     handler = options;
     options = {};
   }
-
-  options.methods = options.methods || ['*'];
 
   var that = this;
   function generateHandler(path, handler) {

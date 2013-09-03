@@ -9,13 +9,18 @@ var RegExpRouter = module.exports = function() {
   this._routerKeys = [];
 };
 
-RegExpRouter.prototype.add = function(path, method, handleFn) {
+RegExpRouter.prototype.add = function(path, methods, handleFn) {
   if (!this._router[path]) {
     this._router[path] = {};
     this._routerKeys.push(path);
   }
 
-  this._router[path][method.toLowerCase()] = handleFn;
+  methods = methods || ['*'];
+
+  var that = this;
+  methods.forEach(function(method) {
+    that._router[path][method.toLowerCase()] = handleFn;
+  });
 };
 
 RegExpRouter.prototype.find = function(path, method) {
