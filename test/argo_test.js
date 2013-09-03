@@ -260,19 +260,19 @@ describe('Argo', function() {
         .call(env);
     });
 
-    it('returns the longest possible match first', function(done) {
+    it('returns first known match', function(done) {
       var env = _getEnv();
-      env.request.url = '/route/that/matches/first';
+      env.request.url = '/route/that/does/not/match/first';
       env.request.method = 'GET';
 
       argo()
-        .route('^/route$', function(handle) { assert.ok(false); done(); })
-        .route('^/route/that/matches', function(handle) {
+        .route('^/route', function(handle) {
           handle('request', function(env, next) {
-            assert.equal(env.request.url, '/route/that/matches/first');
+            assert.equal(env.request.url, '/route/that/does/not/match/first');
             done();
           });
         })
+        .route('^/route/that/does/not/match/first', function(handle) { })
       .call(env);
     });
 

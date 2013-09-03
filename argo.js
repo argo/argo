@@ -227,15 +227,6 @@ Argo.prototype.route = function(path, options, handlers) {
   });
 
   that._routerKeys.push(path);
-  that._routerKeys.sort(function(a, b) {
-    if (a.length > b.length) {
-      return -1;
-    } else if (a.length < b.length) {
-      return 1;
-    }
-
-    return 0;
-  });
 
   that.builder.use(function addRouteHandlers(handlers) { 
    that._route(that._router, handlers);
@@ -389,10 +380,6 @@ Argo.prototype._routeRequestHandler = function(router) {
       }
 
       var re = new RegExp(key);
-      if (search[0] !== '/') {
-        search = '/' + search;
-      }
-
       var testMatch = re.test(search);
 
       if (!routerKey && key !== '*' && testMatch) {
