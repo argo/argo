@@ -3,19 +3,18 @@ var DOMParser = require('xmldom').DOMParser;
 
 module.exports = function(handle) {
   handle('request', function(env, next) {
-    var regex = /\/([0-9]+)\.json/;
-    var result = regex.exec(env.request.url);
+    var woeid = env.request.params[1] ? env.request.params[1] : '2467861' /* Palo Alto, CA */;
 
-    var woeid = result ? result[1] : '2467861' /* Palo Alto, CA */;
     var parsed = url.parse(env.target.url);
-    parsed.pathname = '/forecastrss?w=' + woeid;
+    parsed.pathname = '/forecastrss';
+    parsed.query = { w: woeid };
     env.target.url = url.format(parsed);
 
     next(env);
   });
 
   handle('response', function(env, next) {
-    env.response.setHeader('Content-Type', 'application/json;charset=UTF-8');
+    env.response.setHeader('Content-Type', 'application/json;charset=utf-8');
     env.target.response.getBody(function(err, body) {
       var json = xmlToJson(body.toString());
       env.response.body = json;

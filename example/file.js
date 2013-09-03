@@ -2,13 +2,13 @@ var fs = require('fs');
 var argo = require('../');
 
 argo()
-  .get('/hello.txt', function(handle) {
+  .get('^/hello.txt$', function(handle) {
     handle('request', function(env, next) {
       var filename = __dirname + '/hello.txt';
+      console.log(filename);
       fs.stat(filename, function(err, stats) {
-        console.log(stats);
-        env.response.headers['Content-Length'] = stats.size;
-        env.response.headers['Content-Type'] = 'text/plain';
+        env.response.setHeader('Content-Length', stats.size);
+        env.response.setHeader('Content-Type', 'text/plain');
         env.response.body = fs.createReadStream(filename)
         next(env);
       });

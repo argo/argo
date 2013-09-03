@@ -301,10 +301,17 @@ Argo.prototype.map = function(path, options, handler) {
           env.request.url = env.request.url.substr(0, env.request.url.length - 1);
         }
 
-        frame.routeUri = path || '/';
+        frame.routeUri = path || '^/';
 
         if (path !== '/' && path !== '*') {
-          env.request.url = env.request.url.substr(frame.routeUri.length);
+          var search = frame.routeUri;
+          if (search[0] !== '^') {
+            search = '^' + search;
+          }
+
+          var re = new RegExp(search);
+
+          env.request.url = env.request.url.replace(re, '');
         }
 
         env.request.url = env.request.url || '/';
@@ -372,17 +379,28 @@ Argo.prototype._routeRequestHandler = function(router) {
     env.argo._routed = false;
 
     var search = env.request.url;
-      
+
     var routerKey;
-    if (search === '/' && that._router['/']) {
-      routerKey = '/';
-    } else {
-      that._routerKeys.forEach(function(key) {
-        if (!routerKey && key !== '*' && search.search(new RegExp('^' + key)) !== -1 && key !== '/') {
-          routerKey = key;
-        }
-      });
-    }
+    var found = false;
+
+    that._routerKeys.forEach(function(key) {
+      if (found || key === '*') {
+        return;
+      }
+
+      var re = new RegExp(key);
+      if (search[0] !== '/') {
+        search = '/' + search;
+      }
+
+      var testMatch = re.test(search);
+
+      if (!routerKey && key !== '*' && testMatch) {
+        found = true;
+        routerKey = key;
+        env.request.params = re.exec(search);
+      }
+    });
 
     if (!routerKey && that._router['*']) {
       routerKey = '*';

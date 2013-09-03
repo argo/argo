@@ -10,15 +10,15 @@ argo()
       process.exit();
     });
   })
-  .get('/', function(handle) {
+  .get('^/$', function(handle) {
     handle('request', function(env, next) {
       env.response.body = 'Hello World!';
       next(env);
     });
   })
-  .get('/explode', function(handle) {
+  .get('^/explode$', function(handle) {
     handle('request', function(env, next) {
       setImmediate(function() { throw new Error('Ahoy!'); });
     });
   })
-  .listen(3000);
+  .listen(process.env.PORT || 3000);
