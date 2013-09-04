@@ -256,6 +256,7 @@ Argo.prototype.map = function(path, options, handler) {
   var that = this;
   function generateHandler(path, handler) {
     var argo = new Argo(that._http);
+    argo.router = that.router.create();
 
     handler(argo);
 

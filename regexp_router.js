@@ -88,6 +88,6 @@ RegExpRouter.prototype.truncate = function(path, pattern) {
   }
 };
 
-RegExpRouter.create = function() {
+RegExpRouter.create = RegExpRouter.prototype.create = function() {
   return new RegExpRouter();
 };
