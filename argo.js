@@ -138,8 +138,11 @@ Argo.prototype.buildCore = function() {
   var that = this;
 
   that.builder.use(function(handler) {
-    handler('request', function(env, next) {
+    handler('request', { affinity: 'hoist' }, function(env, next) {
       env.argo._http = that._http;
+      if (!env.argo.currentUrl) {
+        env.argo.currentUrl = env.request.url;
+      }
       next(env);
     });
   });
@@ -275,13 +278,14 @@ Argo.prototype.map = function(path, options, handler) {
         env.argo._routedResponseHandler = null;
         env.target.url = null;
 
-        if (env.request.url[env.request.url.length - 1] === '/') {
-          env.request.url = env.request.url.substr(0, env.request.url.length - 1);
+        if (env.argo.currentUrl[env.argo.currentUrl.length - 1] === '/') {
+          env.argo.currentUrl = env.argo.currentUrl.substr(0, env.argo.currentUrl.length - 1);
         }
 
         frame.routeUri = path;
 
-        env.request.url = that.router.truncate(env.request.url, frame.routeUri) || '/';
+        var previousUrl = env.argo.currentUrl;
+        env.argo.currentUrl = that.router.truncate(env.argo.currentUrl, frame.routeUri) || '/';
 
         // TODO: See if this can work in a response handler here.
         
@@ -297,7 +301,7 @@ Argo.prototype.map = function(path, options, handler) {
 
           env.argo._routed = frame.routed;
           env.argo._routedResponseHandler = frame.routedResponseHandler;
-          env.request.url = frame.routeUri + env.request.url;
+          env.argo.currentUrl = previousUrl;
           env.argo.oncomplete = frame.oncomplete;
           env.target.url = frame.targetUrl;
 
@@ -343,7 +347,7 @@ Argo.prototype._routeRequestHandler = function(router) {
       return next(env);
     }
 
-    var routeResult = router.find(env.request.url, env.request.method);
+    var routeResult = router.find(env.argo.currentUrl, env.request.method);
 
     if (!routeResult.warning) {
       env.argo._routed = true;

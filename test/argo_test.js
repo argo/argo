@@ -337,7 +337,8 @@ describe('Argo', function() {
             server
               .route('^/sub$', function(handle) {
                 handle('request', function(env, next) {
-                  assert.equal(env.request.url, '/sub');
+                  assert.equal(env.argo.currentUrl, '/sub');
+                  assert.equal(env.request.url, '/map/sub');
                   done();
                   next(env);
                 });
@@ -357,7 +358,8 @@ describe('Argo', function() {
               .map('^/map2', function(serverTwo){
                 serverTwo.route('^/sub$', function(handle) {
                   handle('request', function(env, next) {
-                    assert.equal(env.request.url, '/sub');
+                    assert.equal(env.argo.currentUrl, '/sub');
+                    assert.equal(env.request.url, '/map/map2/sub');
                     done();
                     next(env);
                   });
@@ -377,7 +379,8 @@ describe('Argo', function() {
             server
               .route('^/sub$', function(handle) {
                 handle('request', function(env, next) {
-                  assert.equal(env.request.url, '/sub');
+                  assert.equal(env.argo.currentUrl, '/sub');
+                  assert.equal(env.request.url, '/map/sub/');
                   done();
                   next(env);
                 });
