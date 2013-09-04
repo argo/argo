@@ -12,7 +12,7 @@ argo()
       env.pipeline('custom').siphon(env, next);
     });
   })
-  .get('/', function(handle) {
+  .get('^/$', function(handle) {
     handle('request', function(env, next) {
       env.response.body = 'Hello Custom!';
       next(env);

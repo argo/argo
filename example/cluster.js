@@ -37,5 +37,5 @@ if (cluster.isMaster) {
   var handler = worker(server).build();
 
   server.on('request', handler.run);
-  server.listen(3000);
+  server.listen(process.env.PORT || 3000);
 }

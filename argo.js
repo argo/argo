@@ -2,9 +2,11 @@ var http = require('http');
 var https = require('https');
 var url = require('url');
 var Stream = require('stream');
+var path = require('path');
 var environment = require('./environment');
 var Frame = require('./frame');
 var Builder = require('./builder');
+var RegExpRouter = require('./regexp_router');
 
 // Maximum number of sockets to keep alive per target host
 // TODO make this configurable
@@ -12,8 +14,7 @@ var SocketPoolSize = 1024;
 var _httpAgent, _httpsAgent;
 
 var Argo = function(_http) {
-  this._router = {};
-  this._routerKeys = [];
+  this.router = RegExpRouter.create();
   this.builder = new Builder();
   this._http = _http || http;
 
@@ -138,8 +139,39 @@ Argo.prototype.buildCore = function() {
   var that = this;
 
   that.builder.use(function(handler) {
-    handler('request', function(env, next) {
+    handler('request', { affinity: 'hoist' }, function(env, next) {
       env.argo._http = that._http;
+      if (!env.argo.currentUrl) {
+        env.argo.currentUrl = env.request.url;
+      }
+
+      if (!env.argo.uri) {
+        env.argo.uri = function() {
+          var xfp = env.request.headers['x-forwarded-proto'];
+          var protocol;
+
+          if (xfp && xfp.length) {
+            protocol = xfp.replace(/\s*/, '').split(',')[0];
+          } else {
+            protocol = env.request.connection.encrypted ? 'https' : 'http';
+          }
+
+          var host = env.request.headers['host'];
+
+          if (!host) {
+            var address = env.request.connection.address();
+            host = address.address;
+            if (address.port) {
+              if (!(protocol === 'https' && address.port === 443) && 
+                  !(protocol === 'http' && address.port === 80)) {
+                host += ':' + address.port
+              }
+            }
+          }
+
+          return protocol + '://' + path.join(host, env.request.url);
+        }
+      }
       next(env);
     });
   });
@@ -164,6 +196,9 @@ Argo.prototype.build = function() {
         } else if (body instanceof Stream) {
           env.response.writeHead(env.response.statusCode, env.response.headers);
           body.pipe(env.response);
+        } else if (body instanceof Buffer) {
+          env.response.writeHead(env.response.statusCode, env.response.headers);
+          env.response.end(body);
         } else if (typeof body === 'object') {
           body = new Buffer(JSON.stringify(body), 'utf-8');
           if (!env.response.getHeader('Content-Type')) {
@@ -210,35 +245,17 @@ Argo.prototype.call = function(env) {
   return app.flow(env);
 }
 
-Argo.prototype.route = function(path, options, handlers) {
+Argo.prototype.route = function(path, options, handleFn) {
   if (typeof(options) === 'function') {
-    handlers = options;
+    handleFn = options;
     options = {};
   }
 
-  options.methods = options.methods || ['*'];
-  if (!this._router[path]) {
-    this._router[path] = {};
-  }
+  this.router.add(path, options.methods, handleFn);
 
-  var that = this;
-  options.methods.forEach(function(method) {
-    that._router[path][method.toLowerCase()] = handlers;
-  });
-
-  that._routerKeys.push(path);
-  that._routerKeys.sort(function(a, b) {
-    if (a.length > b.length) {
-      return -1;
-    } else if (a.length < b.length) {
-      return 1;
-    }
-
-    return 0;
-  });
-
-  that.builder.use(function addRouteHandlers(handlers) { 
-   that._route(that._router, handlers);
+  var self = this;
+  this.builder.use(function addRouteHandleFn(handleFn) { 
+   self._route(self.router, handleFn);
   });
 
   return this;
@@ -271,14 +288,10 @@ Argo.prototype.map = function(path, options, handler) {
     options = {};
   }
 
-  options.methods = options.methods || ['*'];
-  if (!this._router[path]) {
-    this._router[path] = {};
-  }
-
   var that = this;
   function generateHandler(path, handler) {
     var argo = new Argo(that._http);
+    argo.router = that.router.create();
 
     handler(argo);
 
@@ -297,17 +310,14 @@ Argo.prototype.map = function(path, options, handler) {
         env.argo._routedResponseHandler = null;
         env.target.url = null;
 
-        if (env.request.url[env.request.url.length - 1] === '/') {
-          env.request.url = env.request.url.substr(0, env.request.url.length - 1);
+        if (env.argo.currentUrl[env.argo.currentUrl.length - 1] === '/') {
+          env.argo.currentUrl = env.argo.currentUrl.substr(0, env.argo.currentUrl.length - 1);
         }
 
-        frame.routeUri = path || '/';
+        frame.routeUri = path;
 
-        if (path !== '/' && path !== '*') {
-          env.request.url = env.request.url.substr(frame.routeUri.length);
-        }
-
-        env.request.url = env.request.url || '/';
+        var previousUrl = env.argo.currentUrl;
+        env.argo.currentUrl = that.router.truncate(env.argo.currentUrl, frame.routeUri) || '/';
 
         // TODO: See if this can work in a response handler here.
         
@@ -323,7 +333,7 @@ Argo.prototype.map = function(path, options, handler) {
 
           env.argo._routed = frame.routed;
           env.argo._routedResponseHandler = frame.routedResponseHandler;
-          env.request.url = frame.routeUri + env.request.url;
+          env.argo.currentUrl = previousUrl;
           env.argo.oncomplete = frame.oncomplete;
           env.target.url = frame.targetUrl;
 
@@ -369,41 +379,16 @@ Argo.prototype._routeRequestHandler = function(router) {
       return next(env);
     }
 
-    env.argo._routed = false;
+    var routeResult = router.find(env.argo.currentUrl, env.request.method);
 
-    var search = env.request.url;
-      
-    var routerKey;
-    if (search === '/' && that._router['/']) {
-      routerKey = '/';
-    } else {
-      that._routerKeys.forEach(function(key) {
-        if (!routerKey && key !== '*' && search.search(new RegExp('^' + key)) !== -1 && key !== '/') {
-          routerKey = key;
-        }
-      });
-    }
-
-    if (!routerKey && that._router['*']) {
-      routerKey = '*';
-    }
-
-    if (routerKey &&
-        (!router[routerKey][env.request.method.toLowerCase()] &&
-         !router[routerKey]['*'])) {
-      env.response.statusCode = 405;
-      next(env);
-      return;
-    }
-
-    if (routerKey &&
-        (router[routerKey][env.request.method.toLowerCase()] ||
-         router[routerKey]['*'])) {
+    if (!routeResult.warning) {
       env.argo._routed = true;
 
-      var method = env.request.method.toLowerCase();
-      var fn = router[routerKey][method] ? router[routerKey][method] 
-        : router[routerKey]['*'];
+      if (routeResult.params) {
+        env.request.params = routeResult.params;
+      }
+
+      var fn = routeResult.handlerFn;
 
       var handlers = new RouteHandlers();
       fn(that._addRouteHandlers(handlers));
@@ -416,10 +401,12 @@ Argo.prototype._routeRequestHandler = function(router) {
         next(env);
         return;
       }
-    }
-    
-    if (!env.argo._routed) {
-      next(env);
+    } else if (routeResult.warning === 'MethodNotSupported') {
+      env.response.statusCode = 405;
+      return next(env);
+    } else {
+      env.argo._routed = false;
+      return next(env);
     }
   };
 };

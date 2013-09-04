@@ -67,7 +67,7 @@ Setup the server:
 var argo = require('argo');
 
 argo()
-  .get('/dogs', function(handle) {
+  .get('^/dogs$', function(handle) {
     handle('request', function(env, next) {
       env.response.statusCode = 200;
       env.response.body = { dogs: ['Alfred', 'Rover', 'Dino'] };
@@ -165,7 +165,7 @@ argo()
 <a name="route"/>
 ### route(path, [options], handleFunction)
 
-* `path`: a string used to match HTTP Request URI path.
+* `path`: a regular expression used to match HTTP Request URI path.
 
 * `options`: an object with a `methods` property to filter HTTP methods (e.g., `{ methods: ['GET','POST'] }`).  Optional.
 
@@ -175,7 +175,7 @@ Example:
 
 ```javascript
 argo()
-  .route('/greeting', function(handle) {
+  .route('^/greeting$', function(handle) {
     handle('request', function(env, next) {
       env.response.statusCode = 200;
       env.response.headers = { 'Content-Type': 'text/plain' };
@@ -204,7 +204,7 @@ Example:
 
 ```javascript
 argo()
-  .get('/puppies', function(handle) {
+  .get('^/puppies$', function(handle) {
     handle('request', function(env, next) {
       env.response.body = JSON.stringify([{name: 'Sparky', breed: 'Fox Terrier' }]);
       next(env);
@@ -216,7 +216,7 @@ argo()
 
 `map` is used to delegate control to sub-Argo instances based on a request URI path.
 
-* `path`: a string used to match the HTTP Request URI path.
+* `path`: a regular expression used to match the HTTP Request URI path.
 
 * `options`: an object with a `methods` property to filter HTTP methods (e.g., `{ methods: ['GET','POST'] }`).  Optional.
 
@@ -226,7 +226,7 @@ Example:
 
 ```javascript
 argo()
-  .map('/payments', function(server) {
+  .map('^/payments', function(server) {
     server
       .use(oauth)
       .target('http://backend_payment_server');
@@ -248,7 +248,7 @@ var superPackage = function(argo) {
     install: function() {
       argo
         .use(oauth)
-        .route('/super', require('./super'));
+        .route('^/super$', require('./super'));
     }
   };
 };
@@ -277,13 +277,13 @@ argo()
       process.exit();
     });
   })
-  .get('/', function(handle) {
+  .get('^/$', function(handle) {
     handle('request', function(env, next) {
       env.response.body = 'Hello World!';
       next(env);
     });
   })
-  .get('/explode', function(handle) {
+  .get('^/explode$', function(handle) {
     handle('request', function(env, next) {
       setImmediate(function() { throw new Error('Ahoy!'); });
     });
@@ -308,13 +308,6 @@ Test Coverage:
 ```bash
 $ npm run-script coverage
 ```
-
-## On the Roadmap
-
-* HTTP Caching Support
-* Collapsed Forwarding
-* Parameterized Routing
-* Rate Limiting
 
 ## License
 MIT

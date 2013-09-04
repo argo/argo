@@ -205,7 +205,7 @@ describe('Argo', function() {
       env.request.url = '/route';
       env.request.method = 'GET';
       argo()
-        .route('/route', function(handle) {
+        .route('^/route$', function(handle) {
           handle('request', function(env, next) {
             assert.equal(env.request.url, '/route');
             done();
@@ -220,7 +220,7 @@ describe('Argo', function() {
       env.request.method = 'GET';
 
       argo()
-        .route('/route', function(handle) {
+        .route('^/route$', function(handle) {
           handle('response', function(env, next) {
             assert.equal(env.request.url, '/route');
             done();
@@ -241,7 +241,7 @@ describe('Argo', function() {
             done();
           });
         })
-        .route('/route', function(handle) {
+        .route('^/route$', function(handle) {
         })
         .call(env);
     });
@@ -252,27 +252,27 @@ describe('Argo', function() {
       env.request.method = 'GET';
 
       argo()
-        .get('/hello', function(handle){})
-        .get('/goodbye', function(handle){
+        .get('^/hello$', function(handle){})
+        .get('^/goodbye$', function(handle){
           assert.equal(env.request.url, '/goodbye');
             done();
         })
         .call(env);
     });
 
-    it('returns the longest possible match first', function(done) {
+    it('returns first known match', function(done) {
       var env = _getEnv();
-      env.request.url = '/route/that/matches/first';
+      env.request.url = '/route/that/does/not/match/first';
       env.request.method = 'GET';
 
       argo()
-        .route('/route', function(handle) { })
-        .route('/route/that/matches', function(handle) {
+        .route('^/route', function(handle) {
           handle('request', function(env, next) {
-            assert.equal(env.request.url, '/route/that/matches/first');
+            assert.equal(env.request.url, '/route/that/does/not/match/first');
             done();
           });
         })
+        .route('^/route/that/does/not/match/first', function(handle) { })
       .call(env);
     });
 
@@ -282,8 +282,8 @@ describe('Argo', function() {
       env.request.method = 'GET';
 
       argo()
-        .route('/route', function(handle) { })
-        .route('/', function(handle) {
+        .route('^/route$', function(handle) { })
+        .route('^/$', function(handle) {
           handle('request', function(env, next) {
             assert.equal(env.request.url, '/');
             done();
@@ -304,7 +304,7 @@ describe('Argo', function() {
             done();
           });
         })
-        .route('/', function(handle) { })
+        .route('^/$', function(handle) { })
       .call(env);
     });
 
@@ -320,7 +320,7 @@ describe('Argo', function() {
             done();
           });
         })
-        .route('/', function(handle) { })
+        .route('^/$', function(handle) { })
       .call(env);
     });
   });
@@ -333,11 +333,12 @@ describe('Argo', function() {
         env.request.method = 'GET';
 
         argo()
-          .map('/map', function(server) {
+          .map('^/map', function(server) {
             server
-              .route('/sub', function(handle) {
+              .route('^/sub$', function(handle) {
                 handle('request', function(env, next) {
-                  assert.equal(env.request.url, '/sub');
+                  assert.equal(env.argo.currentUrl, '/sub');
+                  assert.equal(env.request.url, '/map/sub');
                   done();
                   next(env);
                 });
@@ -352,12 +353,13 @@ describe('Argo', function() {
         env.request.method = 'GET';
 
         argo()
-          .map('/map', function(server) {
+          .map('^/map', function(server) {
             server
-              .map('/map2', function(serverTwo){
-                serverTwo.route('/sub', function(handle) {
+              .map('^/map2', function(serverTwo){
+                serverTwo.route('^/sub$', function(handle) {
                   handle('request', function(env, next) {
-                    assert.equal(env.request.url, '/sub');
+                    assert.equal(env.argo.currentUrl, '/sub');
+                    assert.equal(env.request.url, '/map/map2/sub');
                     done();
                     next(env);
                   });
@@ -373,11 +375,12 @@ describe('Argo', function() {
         env.request.method = 'GET';
 
         argo()
-          .map('/map', function(server) {
+          .map('^/map', function(server) {
             server
-              .route('/sub', function(handle) {
+              .route('^/sub$', function(handle) {
                 handle('request', function(env, next) {
-                  assert.equal(env.request.url, '/sub');
+                  assert.equal(env.argo.currentUrl, '/sub');
+                  assert.equal(env.request.url, '/map/sub/');
                   done();
                   next(env);
                 });
@@ -643,7 +646,7 @@ describe('Argo', function() {
       env.request.url = '/sheep';
 
       argo()
-        .get('/sheep', function(handle) {
+        .get('^/sheep$', function(handle) {
           handle('request', function(env, next) {
             assert.equal(env.request.method, 'GET');
             done();
@@ -660,7 +663,7 @@ describe('Argo', function() {
       env.request.url = '/sheep';
 
       argo()
-        .post('/sheep', function(handle) {
+        .post('^/sheep$', function(handle) {
           handle('request', function(env, next) {
             assert.equal(env.request.method, 'POST');
             done();
@@ -677,7 +680,7 @@ describe('Argo', function() {
       env.request.url = '/sheep';
 
       argo()
-        .put('/sheep', function(handle) {
+        .put('^/sheep$', function(handle) {
           handle('request', function(env, next) {
             assert.equal(env.request.method, 'PUT');
             done();
@@ -694,7 +697,7 @@ describe('Argo', function() {
       env.request.url = '/sheep';
 
       argo()
-        .del('/sheep', function(handle) {
+        .del('^/sheep$', function(handle) {
           handle('request', function(env, next) {
             assert.equal(env.request.method, 'DELETE');
             done();
@@ -711,7 +714,7 @@ describe('Argo', function() {
       env.request.url = '/sheep';
 
       argo()
-        .head('/sheep', function(handle) {
+        .head('^/sheep$', function(handle) {
           handle('request', function(env, next) {
             assert.equal(env.request.method, 'HEAD');
             done();
@@ -728,7 +731,7 @@ describe('Argo', function() {
       env.request.url = '/sheep';
 
       argo()
-        .options('/sheep', function(handle) {
+        .options('^/sheep$', function(handle) {
           handle('request', function(env, next) {
             assert.equal(env.request.method, 'OPTIONS');
             done();
@@ -746,7 +749,7 @@ describe('Argo', function() {
       env.request.url = '/sheep';
 
       argo()
-        .trace('/sheep', function(handle) {
+        .trace('^/sheep$', function(handle) {
           handle('request', function(env, next) {
             assert.equal(env.request.method, 'TRACE');
             done();
@@ -759,7 +762,7 @@ describe('Argo', function() {
   describe('#run', function() {
     it('works as a request listener', function(done) {
       var proxy = argo()
-        .get('/sheep', function(handle) {
+        .get('^/sheep$', function(handle) {
           handle('request', function(env, next) {
             assert.equal(env.request.token, 'worked');
             done();
@@ -785,7 +788,7 @@ describe('Argo', function() {
       };
 
       argo()
-        .get('/sheep', function(handle) { })
+        .get('^/sheep$', function(handle) { })
         .call(env);
     });
   });
@@ -977,7 +980,7 @@ describe('Argo', function() {
       stream.readable = true;
 
       argo()
-        .get('/hello', function(handle) {
+        .get('^/hello$', function(handle) {
           handle('request', function(env, next) {
             env.response.statusCode = 200;
             env.response.headers['Content-Type'] = 'text/plain';
@@ -1005,7 +1008,7 @@ describe('Argo', function() {
       };
 
       argo()
-        .get('/hello', function(handle) {
+        .get('^/hello$', function(handle) {
           handle('request', function(env, next) {
             env.response.statusCode = 200;
             env.response.body = { hello: 'World' };
@@ -1028,7 +1031,7 @@ describe('Argo', function() {
       };
 
       argo()
-        .get('/hello', function(handle) {
+        .get('^/hello$', function(handle) {
           handle('request', function(env, next) {
             env.response.statusCode = 200;
             env.response.headers['Content-Length'] = 0;
@@ -1055,7 +1058,7 @@ describe('Argo', function() {
             done();
           });
         })
-        .get('/yo', function(handle) {
+        .get('^/yo$', function(handle) {
           handle('request', function(env, next) {
             env.token = 'TADA!';
             process.nextTick(function() { throw new Error('KAPOW!'); });
