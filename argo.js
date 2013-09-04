@@ -2,6 +2,7 @@ var http = require('http');
 var https = require('https');
 var url = require('url');
 var Stream = require('stream');
+var path = require('path');
 var environment = require('./environment');
 var Frame = require('./frame');
 var Builder = require('./builder');
@@ -143,6 +144,34 @@ Argo.prototype.buildCore = function() {
       if (!env.argo.currentUrl) {
         env.argo.currentUrl = env.request.url;
       }
+
+      if (!env.argo.uri) {
+        env.argo.uri = function() {
+          var xfp = env.request.headers['x-forwarded-proto'];
+          var protocol;
+
+          if (xfp && xfp.length) {
+            protocol = xfp.replace(/\s*/, '').split(',')[0];
+          } else {
+            protocol = env.request.connection.encrypted ? 'https' : 'http';
+          }
+
+          var host = env.request.headers['host'];
+
+          if (!host) {
+            var address = env.request.connection.address();
+            host = address.address;
+            if (address.port) {
+              if (!(protocol === 'https' && address.port === 443) && 
+                  !(protocol === 'http' && address.port === 80)) {
+                host += ':' + address.port
+              }
+            }
+          }
+
+          return protocol + '://' + path.join(host, env.request.url);
+        }
+      }
       next(env);
     });
   });
@@ -167,6 +196,9 @@ Argo.prototype.build = function() {
         } else if (body instanceof Stream) {
           env.response.writeHead(env.response.statusCode, env.response.headers);
           body.pipe(env.response);
+        } else if (body instanceof Buffer) {
+          env.response.writeHead(env.response.statusCode, env.response.headers);
+          env.response.end(body);
         } else if (typeof body === 'object') {
           body = new Buffer(JSON.stringify(body), 'utf-8');
           if (!env.response.getHeader('Content-Type')) {
