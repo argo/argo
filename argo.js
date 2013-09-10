@@ -1,5 +1,3 @@
-var http = require('http');
-var https = require('https');
 var url = require('url');
 var Stream = require('stream');
 var path = require('path');
@@ -7,98 +5,38 @@ var environment = require('./environment');
 var Frame = require('./frame');
 var Builder = require('./builder');
 var RegExpRouter = require('./regexp_router');
+var assembler = require('./assembler')
 
-// Maximum number of sockets to keep alive per target host
-// TODO make this configurable
-var SocketPoolSize = 1024;
-var _httpAgent, _httpsAgent;
-
-var Argo = function(_http) {
-  this.router = RegExpRouter.create();
-  this.builder = new Builder();
-  this._http = _http || http;
-
-  _httpAgent = new this._http.Agent();
-  _httpsAgent = new https.Agent();
-
-  _httpAgent.maxSockets = _httpsAgent.maxSockets = SocketPoolSize;
-
-  var that = this;
-  var incoming = this._http.IncomingMessage.prototype;
-
-  if (!incoming._argoModified) {
-    var _addHeaderLine = incoming._addHeaderLine;
-
-    incoming._addHeaderLine = function(field, value) {
-      this._rawHeaderNames = this._rawHeaderNames || {};
-      this._rawHeaderNames[field.toLowerCase()] = field;
-
-      _addHeaderLine.call(this, field, value);
-    };
-
-    incoming.body = null;
-    incoming.getBody = that._getBody();
-    incoming._argoModified = true;
-  }
-
-  var serverResponse = this._http.ServerResponse.prototype;
-  if (!serverResponse._argoModified) {
-    serverResponse.body = null;
-    serverResponse.getBody = that._getBody();
-
-    serverResponse._argoModified = true;
-  }
+var Argo = module.exports = function(/*server, router, builder,*/ extensions) {
+  this.server = null;//server;
+  this.router = null;//router;
+  this.builder = null;//builder;
+  this.container = null;
+  this.extensions = extensions;
+  this.packages = [];
 };
 
-Argo.prototype._getBody = function() {
-  var that = this;
-  return function(callback) {
-    if (this.body) {
-      callback(null, this.body);
-      return;
+Argo.prototype.init = function() {
+  var self = this;
+  this.extensions.forEach(function(extension) {
+    if (extension.init && typeof extension.init === 'function') {
+      extension.init.bind(extension)(self);
     }
-    var buf = [];
-    var len = 0;
-
-    this.on('data', function(chunk) {
-      buf.push(chunk);
-      len += chunk.length;
-    });
-
-    this.on('error', function(err) {
-      callback(err);
-    });
-
-    this.on('end', function() {
-      var body;
-      if (buf.length && Buffer.isBuffer(buf[0])) {
-        body = new Buffer(len);
-        var i = 0;
-        buf.forEach(function(chunk) {
-          chunk.copy(body, i, 0, chunk.length);
-          i += chunk.length;
-        });
-      } else if (buf.length) {
-        body = buf.join('');
-      }
-
-      this.body = body;
-
-      callback(null, body);
-    });
-  };
+  });
 };
 
 Argo.prototype.include = function(mod) {
-  var p = mod.package(this);
-  p.install();
+  var name = mod.install(this.container);
+  var ext = this.container.resolve(name);
+  ext.init(this);
+  this.packages.push(mod);
   return this;
 };
 
 Argo.prototype.listen = function(port) {
   var app = this.build();
 
-  this._http.createServer(app.run).listen(port);
+  this.server.createServer(app.run).listen(port);
 
   return this;
 };
@@ -140,7 +78,7 @@ Argo.prototype.buildCore = function() {
 
   that.builder.use(function(handler) {
     handler('request', { affinity: 'hoist' }, function(env, next) {
-      env.argo._http = that._http;
+      //env.argo._http = that._http;
       if (!env.argo.currentUrl) {
         env.argo.currentUrl = env.request.url;
       }
@@ -245,43 +183,6 @@ Argo.prototype.call = function(env) {
   return app.flow(env);
 }
 
-Argo.prototype.route = function(path, options, handleFn) {
-  if (typeof(options) === 'function') {
-    handleFn = options;
-    options = {};
-  }
-
-  this.router.add(path, options.methods, handleFn);
-
-  var self = this;
-  this.builder.use(function addRouteHandleFn(handleFn) { 
-   self._route(self.router, handleFn);
-  });
-
-  return this;
-};
-
-var methods = {
-  'get': 'GET',
-  'post': 'POST',
-  'put': 'PUT',
-  'del': 'DELETE',
-  'head': 'HEAD',
-  'options': 'OPTIONS',
-  'trace': 'TRACE'
-};
-
-Object.keys(methods).forEach(function(method) {
-  Argo.prototype[method] = function(path, options, handlers) {
-    if (typeof(options) === 'function') {
-      handlers = options;
-      options = {};
-    }
-    options.methods = [methods[method]];
-    return this.route(path, options, handlers);
-  };
-});
-
 Argo.prototype.map = function(path, options, handler) {
   if (typeof(options) === 'function') {
     handler = options;
@@ -290,14 +191,19 @@ Argo.prototype.map = function(path, options, handler) {
 
   var that = this;
   function generateHandler(path, handler) {
-    var argo = new Argo(that._http);
-    argo.router = that.router.create();
+    var container = assembler.assemble();
+
+    var argo = container.resolve('argo.core');
+    argo.init();
+
+    //argo.router = that.router.create();
 
     handler(argo);
 
     var app = argo.embed();
 
     return function(handler) {
+      console.log('map handler called');
       handler('request', function mapHandler(env, next) {
         env.argo.frames = env.argo.frames || [];
         
@@ -317,7 +223,7 @@ Argo.prototype.map = function(path, options, handler) {
         frame.routeUri = path;
 
         var previousUrl = env.argo.currentUrl;
-        env.argo.currentUrl = that.router.truncate(env.argo.currentUrl, frame.routeUri) || '/';
+        env.argo.currentUrl = argo.router.truncate(env.argo.currentUrl, frame.routeUri) || '/';
 
         // TODO: See if this can work in a response handler here.
         
@@ -340,174 +246,17 @@ Argo.prototype.map = function(path, options, handler) {
           next(env);
         };
 
+        console.log('pre-flow');
         app.flow(env);
       });
     };
   };
 
-  return this.route(path, options, generateHandler(path, handler));
+  console.log('returning this.route');
+  this.route(path, options, generateHandler(path, handler));
+  return this;
 };
 
 Argo.prototype._pipeline = function(name) {
   return this.builder.pipelineMap[name];
 };
-
-Argo.prototype._addRouteHandlers = function(handlers) {
-  return function add(name, opts, cb) {
-    if (typeof opts === 'function') {
-      cb = opts;
-      opts = null;
-    }
-
-    if (name === 'request') {
-      handlers.request = cb;
-    } else if (name === 'response') {
-      handlers.response = cb;
-    }
-  };
-};
-
-function RouteHandlers() {
-  this.request = null;
-  this.response = null;
-}
-
-Argo.prototype._routeRequestHandler = function(router) {
-  var that = this;
-  return function routeRequestHandler(env, next) {
-    if (env.argo.bypassRoute || env.argo._routed) {
-      return next(env);
-    }
-
-    var routeResult = router.find(env.argo.currentUrl, env.request.method);
-
-    if (!routeResult.warning) {
-      env.argo._routed = true;
-
-      if (routeResult.params) {
-        env.request.params = routeResult.params;
-      }
-
-      var fn = routeResult.handlerFn;
-
-      var handlers = new RouteHandlers();
-      fn(that._addRouteHandlers(handlers));
-
-      env.argo._routedResponseHandler = handlers.response || null;
-
-      if (handlers.request) {
-        handlers.request(env, next);
-      } else {
-        next(env);
-        return;
-      }
-    } else if (routeResult.warning === 'MethodNotSupported') {
-      env.response.statusCode = 405;
-      return next(env);
-    } else {
-      env.argo._routed = false;
-      return next(env);
-    }
-  };
-};
-
-Argo.prototype._routeResponseHandler = function(router) {
-  var that = this;
-  return function routeResponseHandler(env, next) {
-    if (!env.argo._routed) {
-      if (env.response.statusCode !== 405
-          && !(env.target && env.target.url)) {
-        env.response.statusCode = 404;
-      }
-
-      next(env);
-      return;
-    }
-
-    if (env.argo._routedResponseHandler) {
-      env.argo._routedResponseHandler(env, next);
-      return;
-    } else {
-      next(env);
-      return;
-    }
-  };
-};
-
-Argo.prototype._route = function(router, handle) {
-  handle('request', this._routeRequestHandler(router));
-  handle('response', { affinity: 'hoist' }, this._routeResponseHandler(router));
-};
-
-Argo.prototype._target = function(env, next) {
-  if (env.response._headerSent || env.target.skip) {
-    next(env);
-    return;
-  }
-
-  env.target.skip = true;
-
-  if (env.target && env.target.url) {
-    var options = {};
-    options.method = env.request.method || 'GET';
-
-    options.agent = env.argo._agent;
-
-    var parsed = url.parse(env.target.url);
-    var isSecure = parsed.protocol === 'https:';
-    options.hostname = parsed.hostname;
-    options.port = parsed.port || (isSecure ? 443 : 80);
-    options.path = parsed.path;
-    options.agent = (isSecure ? _httpsAgent : _httpAgent);
-
-    options.headers = env.request.headers;
-    //options.headers['Connection'] = 'keep-alive';
-    options.headers['Host'] = options.hostname;
-
-    if (parsed.auth) {
-      options.auth = parsed.auth;
-    }
-
-    var client = (isSecure ? https : env.argo._http);
-
-    env.argo._routed = true;
-    var req = client.request(options, function(res) {
-      for (var key in res.headers) {
-        var headerName = res._rawHeaderNames[key] || key;
-        env.response.setHeader(headerName, res.headers[key]);
-      }
-
-      env.response.statusCode = res.statusCode;
-
-      env.target.response = res;
-
-
-      if (next) {
-        next(env);
-      }
-    });
-
-    req.on('error', function(err) {
-      // Error connecting to the target or target not available -- respond with an error
-      env.response.statusCode = 503;
-      req.socket.destroy();
-      next(env);
-    });
-
-    env.request.getBody(function(err, body) {
-      if (body) {
-        req.write(body);
-      }
-
-      req.end();
-    });
-  } else {
-    next(env);
-  }
-};
-
-var argo = function(_http) { return new Argo(_http); }
-argo.environment = environment;
-
-module.exports = argo;
-//module.exports = function(_http) { return new Argo(_http) };

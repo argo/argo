@@ -58,17 +58,25 @@ describe('Argo', function() {
 
   describe('#include', function() {
     it('evaluates a package', function() {
-      var mixin = {
-        package: function(server) {
-          return { 
-            install: function() {
-              server.mixin = true;
-            }
-          };
-        }
+      var Mixin = function() {
       };
 
-      var server = argo().include(mixin);
+      Mixin.install = function(container) {
+        container.register({
+          name: 'test.mixin',
+          id: 'test.mixin.default',
+          value: Mixin,
+          params: []
+        });
+
+        return 'test.mixin';
+      };
+
+      Mixin.prototype.init = function(server) {
+        server.mixin = true;
+      };
+
+      var server = argo().include(Mixin);
       
       assert.ok(server.mixin);
     });
@@ -77,6 +85,21 @@ describe('Argo', function() {
   describe('#listen', function() {
     it('calls http server listen', function(done) {
       var Http = function() {};
+      Http.install = function(container) {
+        container.register({
+          name: 'argo.server',
+          id: 'argo.server.test',
+          value: Http,
+          params: []
+        });
+
+        return 'argo.server';
+      };
+
+      Http.prototype.init = function(server) {
+        server.server = this;
+      };
+
       Http.prototype.createServer = function() {
         return this;
       };
@@ -91,7 +114,9 @@ describe('Argo', function() {
       _http.ServerResponse = Response;
       _http.Agent = function() {};
 
-      argo(_http).listen(1234);
+      argo()
+      .include(Http)
+      .listen(1234);
     });
   });
 
