@@ -31,6 +31,7 @@ Builder.prototype.buildHandler = function eventedBuildHandler(event, options, ha
     this.pipelineMap[event] = pipeworks();
   }
 
+  console.log('fitting pipe to', event);
   this.pipelineMap[event].fit(options, handler);
 };
 

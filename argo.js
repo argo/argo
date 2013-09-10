@@ -3,6 +3,7 @@ var https = require('https');
 var url = require('url');
 var Stream = require('stream');
 var path = require('path');
+var pipeworks = require('pipeworks');
 var environment = require('./environment');
 var Frame = require('./frame');
 var Builder = require('./builder');
@@ -360,16 +361,16 @@ Argo.prototype._addRouteHandlers = function(handlers) {
     }
 
     if (name === 'request') {
-      handlers.request = cb;
+      handlers.request.push(cb);
     } else if (name === 'response') {
-      handlers.response = cb;
+      handlers.response.push(cb);
     }
   };
 };
 
 function RouteHandlers() {
-  this.request = null;
-  this.response = null;
+  this.request = [];
+  this.response = [];
 }
 
 Argo.prototype._routeRequestHandler = function(router) {
@@ -395,8 +396,18 @@ Argo.prototype._routeRequestHandler = function(router) {
 
       env.argo._routedResponseHandler = handlers.response || null;
 
-      if (handlers.request) {
-        handlers.request(env, next);
+      if (handlers.request.length) {
+        var pipeline = pipeworks();
+
+        handlers.request.forEach(function(handler) {
+          pipeline.fit(handler);
+        });
+
+        pipeline.fit(function(env, n) {
+          next(env);
+        });
+
+        pipeline.flow(env);
       } else {
         next(env);
         return;
@@ -424,8 +435,19 @@ Argo.prototype._routeResponseHandler = function(router) {
       return;
     }
 
-    if (env.argo._routedResponseHandler) {
-      env.argo._routedResponseHandler(env, next);
+    if (env.argo._routedResponseHandler.length) {
+      var pipeline = pipeworks();
+
+      env.argo._routedResponseHandler.forEach(function(handler) {
+        pipeline.fit(handler);
+      });
+
+      pipeline.fit(function(env, n) {
+        next(env);
+      });
+
+      pipeline.flow(env);
+
       return;
     } else {
       next(env);
