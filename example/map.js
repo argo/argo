@@ -19,8 +19,7 @@ argo()
       })
       .get('^/greeting/([^\/]+)$', function(handle) {
         handle('request', function(env, next) {
-          console.log(env.request.params);
-          var name = env.request.params[1];
+          var name = env.route.params[1];
           env.response.body = 'Hello, ' + name;
           next(env);
         }); 

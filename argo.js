@@ -385,8 +385,10 @@ Argo.prototype._routeRequestHandler = function(router) {
     if (!routeResult.warning) {
       env.argo._routed = true;
 
+      env.route = env.route || {};
+
       if (routeResult.params) {
-        env.request.params = routeResult.params;
+        env.route.params = routeResult.params;
       }
 
       var fn = routeResult.handlerFn;

@@ -3,7 +3,7 @@ var DOMParser = require('xmldom').DOMParser;
 
 module.exports = function(handle) {
   handle('request', function(env, next) {
-    var woeid = env.request.params[1] ? env.request.params[1] : '2467861' /* Palo Alto, CA */;
+    var woeid = env.route.params[1] ? env.request.params[1] : '2467861' /* Palo Alto, CA */;
 
     var parsed = url.parse(env.target.url);
     parsed.pathname = '/forecastrss';
