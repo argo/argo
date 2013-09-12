@@ -455,7 +455,8 @@ Argo.prototype._routeResponseHandler = function(router) {
   return function routeResponseHandler(env, next) {
     if (!env.argo._routed) {
       if (env.response.statusCode !== 405
-          && !(env.target && env.target.url)) {
+          && !(env.target && env.target.url)
+          && !env.response.body) {
         env.response.statusCode = 404;
       }
 
