@@ -17,7 +17,7 @@ argo()
           next(env);
         });
       })
-      .get('^/greeting/([^\/]+)$', function(handle) {
+      .get('^/greeting/([^\/]+)', function(handle) {
         handle('request', function(env, next) {
           var name = env.route.params[1];
           env.response.body = 'Hello, ' + name;

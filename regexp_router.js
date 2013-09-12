@@ -9,13 +9,27 @@ var RegExpRouter = module.exports = function() {
   this._routerKeys = [];
 };
 
-RegExpRouter.prototype.add = function(path, methods, handleFn) {
+RegExpRouter.prototype.add = function(path, options, handleFn) {
+  if (options.actsAsPrefix) {
+    if (path.slice(-1) === '$') {
+      path = path.slice(0, -1);
+    }
+
+    if (path[0] !== '^') {
+      path = '^' + path;
+    }
+  } else {
+    if (path.slice(-1) !== '$') {
+      path = path + '$';
+    }
+  }
+
   if (!this._router[path]) {
     this._router[path] = {};
     this._routerKeys.push(path);
   }
 
-  methods = methods || ['*'];
+  methods = options.methods || ['*'];
 
   var that = this;
   methods.forEach(function(method) {

@@ -252,7 +252,33 @@ Argo.prototype.route = function(path, options, handleFn) {
     options = {};
   }
 
-  this.router.add(path, options.methods, handleFn);
+  var opts = {
+    methods: options.methods,
+    actsAsPrefix: false
+  };
+
+  this.router.add(path, options, handleFn);
+
+  var self = this;
+  this.builder.use(function addRouteHandleFn(handleFn) { 
+   self._route(self.router, handleFn);
+  });
+
+  return this;
+};
+
+Argo.prototype._routeMap = function(path, options, handleFn) {
+  if (typeof(options) === 'function') {
+    handleFn = options;
+    options = {};
+  }
+
+  var opts = {
+    methods: options.methods,
+    actsAsPrefix: true
+  };
+
+  this.router.add(path, opts, handleFn);
 
   var self = this;
   this.builder.use(function addRouteHandleFn(handleFn) { 
@@ -346,7 +372,7 @@ Argo.prototype.map = function(path, options, handler) {
     };
   };
 
-  return this.route(path, options, generateHandler(path, handler));
+  return this._routeMap(path, options, generateHandler(path, handler));
 };
 
 Argo.prototype._pipeline = function(name) {
