@@ -188,7 +188,7 @@ Argo.prototype.build = function() {
   // response ender
   that.builder.use(function(handle) {
     handle('response', { affinity: 'sink' }, function(env, next) {
-      if (env.response.body) {
+      if (env.response.body !== null && env.response.body !== undefined) {
         var body = env.response.body;
         if (typeof body === 'string') {
           env.response.setHeader('Content-Length', body ? body.length : 0); 
@@ -214,7 +214,7 @@ Argo.prototype.build = function() {
         if (contentLength == '0') {
           env.response.writeHead(env.response.statusCode, env.response.headers);
           env.response.end();
-        } else if (env.target.response) {
+        } else if (env.target.response !== null && env.target.response !== undefined) {
           env.target.response.getBody(function(err, body) {
             env.response.setHeader('Content-Length', body ? body.length : 0); 
             env.response.writeHead(env.response.statusCode, env.response.headers);
