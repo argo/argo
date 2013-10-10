@@ -96,6 +96,26 @@ describe('Argo', function() {
   });
 
   describe('#use', function() {
+    describe('argo execution pipeline', function() {
+      it('executes response handlers in reverse order', function(done) {
+          var server = argo();
+          var wasCalled = false;
+          server
+            .use(function(handle) {
+              handle("response", function(env, next) {
+                assert.equal(true, wasCalled);
+                done();
+              });
+            })
+            .use(function(handle) {
+              handle("response", function(env, next) {
+                wasCalled = true;
+                next(env);
+              });
+            });
+          server.call(_getEnv());
+      });
+    });
     describe('when using middleware', function() {
       it('delegates to Builder#use', function() {
         var server = argo();
