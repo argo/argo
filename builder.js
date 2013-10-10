@@ -40,7 +40,7 @@ Builder.prototype.build = function() {
     middleware(handle);
   });
 
-  var pipeline = this._requestPipeline.fit(this.app).join(this._responsePipeline);
+  var pipeline = this._requestPipeline.fit(this.app).join(this._responsePipeline.reverse());
 
   if (this.errorHandler) {
     pipeline.fault(this.errorHandler);
