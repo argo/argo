@@ -336,11 +336,32 @@ describe('Argo', function() {
       argo()
         .route('*', function(handle) {
           handle('request', function(env, next) {
-            assert(env.request.url, '/404');
+            assert.equal(env.request.url, '/404');
             done();
           });
         })
         .route('^/$', function(handle) { })
+      .call(env);
+    });
+
+    it('executes routes after request middleware regardless of order they are added to pipeline', function(done) {
+      var env = _getEnv();
+      env.request.url = '/match';
+      env.request.method = 'GET';
+
+      argo()
+        .route('/match', function(handle) {
+          handle('request', function(env, next) {
+            assert.equal(env.test, 'success');
+            done();
+          });
+        })
+        .use(function(handle) {
+          handle('request', function(env, next) {
+            env.test = 'success';
+            next(env);
+          });
+        })
       .call(env);
     });
   });

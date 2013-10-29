@@ -4,9 +4,13 @@ function Builder() {
   this._middleware = [];
   this._requestPipeline = pipeworks();
   this._responsePipeline = pipeworks();
+  this._routeRequestPipeline = pipeworks();
+  this._routeResponsePipeline = pipeworks();
   this.pipelineMap = {
     'request': this._requestPipeline,
     'response': this._responsePipeline,
+    'route:request': this._routeRequestPipeline,
+    'route:response': this._routeResponsePipeline
   };
   this.errorHandler = null;
   this.app = null;
@@ -40,7 +44,11 @@ Builder.prototype.build = function() {
     middleware(handle);
   });
 
-  var pipeline = this._requestPipeline.fit(this.app).join(this._responsePipeline.reverse());
+  var pipeline = this._requestPipeline
+    .join(this._routeRequestPipeline)
+    .fit(this.app)
+    .join(this._routeResponsePipeline.reverse())
+    .join(this._responsePipeline.reverse());
 
   if (this.errorHandler) {
     pipeline.fault(this.errorHandler);

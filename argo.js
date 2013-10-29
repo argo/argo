@@ -486,8 +486,8 @@ Argo.prototype._routeResponseHandler = function(router) {
 };
 
 Argo.prototype._route = function(router, handle) {
-  handle('request', this._routeRequestHandler(router));
-  handle('response', { affinity: 'hoist' }, this._routeResponseHandler(router));
+  handle('route:request', this._routeRequestHandler(router));
+  handle('route:response', { affinity: 'hoist' }, this._routeResponseHandler(router));
 };
 
 Argo.prototype._target = function(env, next) {
