@@ -52,25 +52,31 @@ var Argo = function(_http) {
 };
 
 Argo.prototype._getBody = function() {
-  var that = this;
   return function(callback) {
-    if (this.body) {
-      callback(null, this.body);
-      return;
+    if (this.body !== null && this.body !== undefined) {
+      return callback(null, this.body);
     }
-    var buf = [];
-    var len = 0;
 
-    this.on('data', function(chunk) {
-      buf.push(chunk);
-      len += chunk.length;
-    });
+    if (!this.readable) {
+      return callback();
+    }
 
-    this.on('error', function(err) {
-      callback(err);
-    });
+    var self = this;
+    this.on('readable', function() {
+      var buf = [];
+      var len = 0;
 
-    this.on('end', function() {
+      var chunk;
+
+      while ((chunk = self.read()) != null) {
+        buf.push(chunk);
+        len += chunk.length;
+      }
+
+      if (!buf.length) {
+        return;
+      }
+
       var body;
       if (buf.length && Buffer.isBuffer(buf[0])) {
         body = new Buffer(len);
@@ -83,10 +89,18 @@ Argo.prototype._getBody = function() {
         body = buf.join('');
       }
 
-      this.body = body;
+      self.body = body;
 
       callback(null, body);
     });
+
+    this.on('error', function(err) {
+      callback(err);
+    });
+
+    /*if (typeof this.read === 'function') {
+      this.read(0);
+    }*/
   };
 };
 

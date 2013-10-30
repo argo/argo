@@ -9,18 +9,39 @@ var Environment = require('../environment');
 
 function Request() {
   this.headers = {};
-  Stream.call(this);
+  this.chunks = [];
+  Stream.Duplex.call(this);
 }
-util.inherits(Request, Stream);
+util.inherits(Request, Stream.Duplex);
+
+Request.prototype._read = function(size) {
+  var chunk = this.chunks.length ? this.chunks.shift() : null;
+  this.push(chunk);
+};
+
+Request.prototype._write = function(chunk, encoding, callback) {
+  this.chunks.push(chunk);
+  callback();
+};
 
 function Response() {
   this.headers = {};
   this.statusCode = 0;
-  this.body = '';
-  this.writable = true;
-  Stream.call(this);
+  this.body = null;
+  this.chunks = [];
+  Stream.Duplex.call(this);
 }
-util.inherits(Response, Stream);
+util.inherits(Response, Stream.Duplex);
+
+Response.prototype._read = function(size) {
+  var chunk = this.chunks.length ? this.chunks.shift() : null;
+  this.push(chunk);
+};
+
+Response.prototype._write = function(chunk, encoding, callback) {
+  this.chunks.push(chunk);
+  callback();
+};
 
 Response.prototype.setHeader = function(k, v) {
   this.headers[k] = v;
@@ -456,6 +477,7 @@ describe('Argo', function() {
         .call(env);
 
       env.request.emit('error', new Error("Test!"));
+      env.request.read(0);
     });
 
     it('caches body after retrieval', function(done){
@@ -469,7 +491,7 @@ describe('Argo', function() {
       _http.ServerResponse = Response;
       _http.Agent = function() {};
 
-      argo(_http)
+      var app = argo(_http)
         .use(function(handle) {
           handle('response', function(env, next) {
             env.request.getBody(function(err, body) {
@@ -479,14 +501,14 @@ describe('Argo', function() {
               });
             });
           });
-        })
-        .call(env);
+        });
 
-      env.request.emit('data', new Buffer('Hello '));
-      env.request.emit('data', new Buffer('Buffered '));
-      env.request.emit('data', new Buffer('Request!'));
-      env.request.emit('end');
-
+      env.request.write(new Buffer('Hello '));
+      env.request.write(new Buffer('Buffered '));
+      env.request.write(new Buffer('Request!'));
+      env.request.end();
+      
+      app.call(env);
     });
 
     it('only buffers once', function(done) {
@@ -500,7 +522,7 @@ describe('Argo', function() {
       _http.ServerResponse = Response;
       _http.Agent = function() {};
 
-      argo(_http)
+      var app = argo(_http)
         .use(function(handle) {
           handle('response', function(env, next) {
             env.request.getBody(function(err, body) {
@@ -508,13 +530,14 @@ describe('Argo', function() {
               done();
             });
           });
-        })
-        .call(env);
+        });
 
-      env.request.emit('data', new Buffer('Hello '));
-      env.request.emit('data', new Buffer('Buffered '));
-      env.request.emit('data', new Buffer('Request!'));
-      env.request.emit('end');
+      env.request.write('Hello ');
+      env.request.write('Buffered ');
+      env.request.write('Request!');
+      env.request.end();
+      
+      app.call(env);
     });
     describe('when emitting Buffers', function() {
       it('returns a full representation of the request body', function(done) {
@@ -526,7 +549,7 @@ describe('Argo', function() {
         _http.ServerResponse = Response;
         _http.Agent = function() {};
 
-        argo(_http)
+        var app = argo(_http)
           .use(function(handle) {
             handle('request', function(env, next) {
               env.request.getBody(function(err, body) {
@@ -534,13 +557,14 @@ describe('Argo', function() {
                 done();
               });
             });
-          })
-          .call(env);
+          });
 
-        env.request.emit('data', new Buffer('Hello '));
-        env.request.emit('data', new Buffer('Buffered '));
-        env.request.emit('data', new Buffer('Request!'));
-        env.request.emit('end');
+        env.request.write(new Buffer('Hello '));
+        env.request.write(new Buffer('Buffered '));
+        env.request.write(new Buffer('Request!'));
+        env.request.end();
+      
+        app.call(env);
       });
     });
 
@@ -554,7 +578,7 @@ describe('Argo', function() {
         _http.ServerResponse = Response;
         _http.Agent = function() {};
 
-        argo(_http)
+        var app = argo(_http)
           .use(function(handle) {
             handle('request', function(env, next) {
               env.request.getBody(function(err, body) {
@@ -562,13 +586,14 @@ describe('Argo', function() {
                 done();
               });
             });
-          })
-          .call(env);
+          });
 
-        env.request.emit('data', 'Hello ');
-        env.request.emit('data', 'Buffered ');
-        env.request.emit('data', 'Request!');
-        env.request.emit('end');
+        env.request.write('Hello ');
+        env.request.write('Buffered ');
+        env.request.write('Request!');
+        env.request.end();
+      
+        app.call(env);
       });
     });
   });
@@ -584,7 +609,7 @@ describe('Argo', function() {
       _http.ServerResponse = Response;
       _http.Agent = function() {};
 
-      argo(_http)
+      var app = argo(_http)
         .use(function(handle) {
           handle('response', function(env, next) {
             env.target.response.getBody(function(err, body) {
@@ -592,13 +617,14 @@ describe('Argo', function() {
               done();
             });
           });
-        })
-        .call(env);
+        });
 
-      env.target.response.emit('data', new Buffer('Hello '));
-      env.target.response.emit('data', new Buffer('Buffered '));
-      env.target.response.emit('data', new Buffer('Response!'));
-      env.target.response.emit('end');
+        env.target.response.write('Hello ');
+        env.target.response.write('Buffered ');
+        env.target.response.write('Response!');
+        env.target.response.end();
+      
+        app.call(env);
     });
 
     describe('when emitting Buffers', function() {
@@ -612,7 +638,7 @@ describe('Argo', function() {
         _http.ServerResponse = Response;
         _http.Agent = function() {};
 
-        argo(_http)
+        var app = argo(_http)
           .use(function(handle) {
             handle('response', function(env, next) {
               env.target.response.getBody(function(err, body) {
@@ -621,12 +647,13 @@ describe('Argo', function() {
               });
             });
           })
-          .call(env);
 
-        env.target.response.emit('data', new Buffer('Hello '));
-        env.target.response.emit('data', new Buffer('Buffered '));
-        env.target.response.emit('data', new Buffer('Response!'));
-        env.target.response.emit('end');
+        env.target.response.write(new Buffer('Hello '));
+        env.target.response.write(new Buffer('Buffered '));
+        env.target.response.write(new Buffer('Response!'));
+        env.target.response.end();
+
+        app.call(env);
       });
     });
     
@@ -641,7 +668,7 @@ describe('Argo', function() {
         _http.ServerResponse = Response;
         _http.Agent = function() {};
 
-        argo(_http)
+        var app = argo(_http)
           .use(function(handle) {
             handle('response', function(env, next) {
               env.target.response.getBody(function(err, body) {
@@ -649,13 +676,14 @@ describe('Argo', function() {
                 done();
               });
             });
-          })
-          .call(env);
+          });
 
-        env.target.response.emit('data', 'Hello ');
-        env.target.response.emit('data', 'Buffered ');
-        env.target.response.emit('data', 'Response!');
-        env.target.response.emit('end');
+        env.target.response.write('Hello ');
+        env.target.response.write('Buffered ');
+        env.target.response.write('Response!');
+        env.target.response.end();
+      
+        app.call(env);
       });
     });
   });
@@ -666,17 +694,23 @@ describe('Argo', function() {
       env.target.response = new Response();
       env.response = new Response();
       env.response.setHeader = function() {};
+      env.response.getHeader = function(header) {
+        if (header.toLowerCase() === 'content-length') {
+          return 'Horticulture Fancy'.length.toString();
+        }
+      };
       env.response.writeHead = function() {};
       env.response.end = function(body) {
         assert.equal(body, 'Horticulture Fancy');
         done();
       };
 
-      argo()
-        .call(env);
+      var app = argo();
 
-      env.target.response.emit('data', 'Horticulture Fancy');
-      env.target.response.emit('end');
+      env.target.response.write('Horticulture Fancy');
+      env.target.response.end();
+    
+      app.call(env);
     });
   });
 
@@ -1018,7 +1052,7 @@ describe('Argo', function() {
       };
 
       var stream = new Stream();
-      stream.readable = true;
+      stream.data = true;
 
       argo()
         .get('^/hello$', function(handle) {
@@ -1091,7 +1125,7 @@ describe('Argo', function() {
       env.request.method = 'GET';
       env.response = new Response();
 
-      argo()
+      var server = argo()
         .use(function(handle) {
           handle('error', function(env, error, next) {
             assert.equal(env.token, 'TADA!');
@@ -1102,10 +1136,10 @@ describe('Argo', function() {
         .get('^/yo$', function(handle) {
           handle('request', function(env, next) {
             env.token = 'TADA!';
-            process.nextTick(function() { throw new Error('KAPOW!'); });
+            throw new Error('KAPOW!');
           });
-        })
-        .call(env);
+        });
+        assert.throws(function() { server.call(env) }, /KAPOW/);
     });
   });
 });
