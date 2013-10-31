@@ -29,7 +29,7 @@ RegExpRouter.prototype.add = function(path, options, handleFn) {
     this._routerKeys.push(path);
   }
 
-  methods = options.methods || ['*'];
+  var methods = options.methods || ['*'];
 
   var that = this;
   methods.forEach(function(method) {
