@@ -307,7 +307,7 @@ describe('Argo', function() {
       env.request.method = 'GET';
 
       argo()
-        .route('^/route', function(handle) {
+        .route('^/route/.*', function(handle) {
           handle('request', function(env, next) {
             assert.equal(env.request.url, '/route/that/does/not/match/first');
             done();

@@ -19,7 +19,7 @@ RegExpRouter.prototype.add = function(path, options, handleFn) {
       path = '^' + path;
     }
   } else {
-    if (path.slice(-1) !== '$') {
+    if (path !== '*' && path.slice(-1) !== '$') {
       path = path + '$';
     }
   }
