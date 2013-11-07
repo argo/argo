@@ -1,8 +1,10 @@
 #!/bin/sh
 
-rm -rf ../argo-jscoverage/
-jscoverage --exclude=example --exclude=node_modules ./ ../argo-jscoverage
-cd ../argo-jscoverage/
+rm -rf ./argo-HEAD
+rm -rf ./argo-jscoverage
+git archive --format=tar --prefix=argo-HEAD/ HEAD | tar x
+jscoverage --exclude=example --exclude=node_modules ./argo-HEAD ./argo-jscoverage
+cd ./argo-jscoverage/
 npm install
 mocha --reporter html-cov > coverage.html
 open coverage.html
