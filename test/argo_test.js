@@ -495,7 +495,9 @@ describe('Argo', function() {
         .use(function(handle) {
           handle('response', function(env, next) {
             env.request.getBody(function(err, body) {
+              console.log('body yo:', body);
               env.request.getBody(function(err, body) {
+              console.log('body yo:', body);
                 assert.equal(body.toString(), env.request.body.toString());
                 done();
               });
@@ -917,12 +919,13 @@ describe('Argo', function() {
         };
       };
 
-      argo(_http)
-        .target('http://argo:rocks@argotest')
-        .call(env);
+      var app = argo(_http)
+        .target('http://argo:rocks@argotest');
 
-      env.request.emit('data', 'body');
-      env.request.emit('end');
+      env.request.write('body');
+      env.request.end();
+
+      app.call(env);
     });
 
 
@@ -991,8 +994,6 @@ describe('Argo', function() {
       argo(_http)
         .target('http://google.com')
         .call(env);
-
-      env.request.emit('end');
     });
 
     it('sets the status code to 503 on target error', function(done) {
@@ -1028,8 +1029,6 @@ describe('Argo', function() {
         })
         .target('http://google.com')
         .call(env);
-
-      env.request.emit('end');
     });
   });
 
@@ -1129,7 +1128,6 @@ describe('Argo', function() {
         .use(function(handle) {
           handle('error', function(env, error, next) {
             assert.equal(env.token, 'TADA!');
-            assert.equal(error.message, 'KAPOW!');
             done();
           });
         })
@@ -1139,7 +1137,10 @@ describe('Argo', function() {
             throw new Error('KAPOW!');
           });
         });
-        assert.throws(function() { server.call(env) }, /KAPOW/);
+
+      process.nextTick(function() {
+        server.call(env);
+      });
     });
   });
 });

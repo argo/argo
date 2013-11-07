@@ -90,17 +90,20 @@ Argo.prototype._getBody = function() {
       }
 
       self.body = body;
-
-      callback(null, body);
     });
 
+    var error = null;
     this.on('error', function(err) {
-      callback(err);
+      error = err;
     });
 
-    /*if (typeof this.read === 'function') {
+    this.on('end', function() {
+      callback(error, self.body);
+    });
+
+    if (typeof this.read === 'function') {
       this.read(0);
-    }*/
+    }
   };
 };
 
@@ -478,7 +481,7 @@ Argo.prototype._routeResponseHandler = function(router) {
       return;
     }
 
-    if (env.argo._routedResponseHandler.length) {
+    if (env.argo._routedResponseHandler && env.argo._routedResponseHandler.length) {
       var pipeline = pipeworks();
 
       env.argo._routedResponseHandler.forEach(function(handler) {
@@ -575,4 +578,3 @@ var argo = function(_http) { return new Argo(_http); }
 argo.environment = environment;
 
 module.exports = argo;
-//module.exports = function(_http) { return new Argo(_http) };
