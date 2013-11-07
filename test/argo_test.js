@@ -495,9 +495,7 @@ describe('Argo', function() {
         .use(function(handle) {
           handle('response', function(env, next) {
             env.request.getBody(function(err, body) {
-              console.log('body yo:', body);
               env.request.getBody(function(err, body) {
-              console.log('body yo:', body);
                 assert.equal(body.toString(), env.request.body.toString());
                 done();
               });
