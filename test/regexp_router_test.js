@@ -43,6 +43,12 @@ describe('RegExpRouter', function() {
     assert.equal(path, '/world');
   });
 
+  it('ensures pattern matching starts at the beginning of the path when truncating', function() {
+    var router = RegExpRouter.create();
+    var path = router.truncate('/hello/world', '/hello');
+    assert.equal(path, '/world');
+  });
+
   it('gracefully returns the path when trying to truncate using an asterisk', function() {
     var router = RegExpRouter.create();
     var path = router.truncate('/hello/world', '*');
