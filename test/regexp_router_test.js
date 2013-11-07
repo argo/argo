@@ -48,4 +48,11 @@ describe('RegExpRouter', function() {
     var path = router.truncate('/hello/world', '*');
     assert.equal(path, '/hello/world');
   });
+
+  it('removes `$` in regular expression syntax when actsAsPrefix is set', function() {
+    var router = RegExpRouter.create();
+    router.add('^/hello$', { actsAsPrefix: true }, new Function() /* handleFn */);
+    var result = router.find('/hello/world', 'GET');
+    assert.ok(!result.warning);
+  });
 });
