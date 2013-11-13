@@ -385,6 +385,28 @@ describe('Argo', function() {
         })
       .call(env);
     });
+
+    it('executes routes even when a target has been set', function(done) {
+      var env = _getEnv();
+      env.request.url = '/match';
+      env.request.method = 'GET';
+
+      argo()
+        .use(function(handle) {
+          handle('request', function(env, next) {
+            env.test = 'success';
+            next(env);
+          });
+        })
+        .route('/match', function(handle) {
+          handle('request', function(env, next) {
+            assert.equal(env.test, 'success');
+            done();
+          });
+        })
+        .target('http://abracadabra')
+      .call(env);
+    });
   });
 
   describe('#map', function() {
