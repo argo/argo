@@ -44,9 +44,11 @@ Builder.prototype.build = function() {
     middleware(handle);
   });
 
+  var appPipeline = pipeworks().fit(this.app);
+  
   var pipeline = this._requestPipeline
     .join(this._routeRequestPipeline)
-    .fit(this.app)
+    .join(appPipeline)
     .join(this._routeResponsePipeline.reverse())
     .join(this._responsePipeline.reverse());
 
