@@ -62,10 +62,11 @@ Argo.prototype._getBody = function() {
     }
 
     var self = this;
-    this.on('readable', function() {
-      var buf = [];
-      var len = 0;
+    var buf = [];
+    var len = 0;
+    var body;
 
+    this.on('readable', function() {
       var chunk;
 
       while ((chunk = self.read()) != null) {
@@ -77,7 +78,6 @@ Argo.prototype._getBody = function() {
         return;
       }
 
-      var body;
       if (buf.length && Buffer.isBuffer(buf[0])) {
         body = new Buffer(len);
         var i = 0;
@@ -88,8 +88,6 @@ Argo.prototype._getBody = function() {
       } else if (buf.length) {
         body = buf.join('');
       }
-
-      self.body = body;
     });
 
     var error = null;
@@ -98,7 +96,8 @@ Argo.prototype._getBody = function() {
     });
 
     this.on('end', function() {
-      callback(error, self.body);
+      self.body = body;
+      callback(error, body);
     });
 
     if (typeof this.read === 'function') {
