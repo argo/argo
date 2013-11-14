@@ -488,6 +488,7 @@ Argo.prototype._routeResponseHandler = function(router) {
       });
 
       pipeline.fit(function(env, n) {
+        env.argo._routedResponseHandler = null;
         next(env);
       });
 

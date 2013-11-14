@@ -407,6 +407,36 @@ describe('Argo', function() {
         .target('http://abracadabra')
       .call(env);
     });
+
+    it('executes routes response handlers only once on multiple route definitions', function(done) {
+      var env = _getEnv();
+      env.request.url = '/match';
+      env.request.method = 'GET';
+
+      argo()
+        .use(function(handle) {
+          handle('request', function(env, next) {
+            env.count = 0;
+            next(env);
+          });
+          handle('response', function(env, next) {
+            assert.equal(env.count, 1);
+            done();
+          });
+        })
+        .get('/match', function(handle) {
+          handle('response', function(env, next) {
+            env.count++;
+            next(env);
+          });
+        })
+        .get('/nomatch', function(handle) {
+          handle('request', function(env, next) {
+            next(env);
+          });
+        })
+        .call(env);
+    });
   });
 
   describe('#map', function() {
