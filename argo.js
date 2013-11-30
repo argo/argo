@@ -34,7 +34,7 @@ var Argo = function(_http) {
       this._rawHeaderNames = this._rawHeaderNames || {};
       this._rawHeaderNames[field.toLowerCase()] = field;
 
-      _addHeaderLine.call(this, field, value);
+      _addHeaderLine.call(this, field, value, incoming);
     };
 
     incoming.body = null;
