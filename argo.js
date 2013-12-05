@@ -537,6 +537,10 @@ Argo.prototype._target = function(env, next) {
     }
 
     var client = (isSecure ? https : env.argo._http);
+    if(parsed.protocol === 'unix:') {
+      options.socketPath = parsed.host;
+      options.path = env.request.url;
+    }
 
     env.argo._routed = true;
     var req = client.request(options, function(res) {
