@@ -418,7 +418,7 @@ describe('Argo', function() {
       _http.IncomingMessage = Request;
       _http.ServerResponse = Response;
       _http.request = function(options, callback) {
-        assert.equal(options.socketPath, 'test.sock');
+        assert.equal(options.socketPath, './test.sock');
         assert.equal(options.path, '/proxy');
         done();
         return {
@@ -430,6 +430,31 @@ describe('Argo', function() {
 
       var app = argo(_http)
       .target('unix://test.sock');
+      app.call(env);
+    });
+
+    it('can properly parse out the unix socket host', function(done) {
+      var env = _getEnv();
+      env.request.method = 'GET';
+      env.request.url = '/proxy';
+
+      var _http = function(){};
+      _http.Agent = function(){};
+      _http.IncomingMessage = Request;
+      _http.ServerResponse = Response;
+      _http.request = function(options, callback) {
+        assert.equal(options.socketPath, '/var/test.sock');
+        assert.equal(options.path, '/proxy');
+        done();
+        return {
+          write: function(){},
+          end: function(){},
+          on: function(){}
+        };
+      };
+
+      var app = argo(_http)
+      .target('unix:///var/test.sock');
       app.call(env);
     });
 

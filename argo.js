@@ -538,7 +538,14 @@ Argo.prototype._target = function(env, next) {
 
     var client = (isSecure ? https : env.argo._http);
     if(parsed.protocol === 'unix:') {
-      options.socketPath = parsed.host;
+      //Best way to slice out unix socket path
+      var socketPath = parsed.href.slice(7);
+      socketPath = socketPath.slice(0, socketPath.length - env.request.url.length);
+      //Socket path is relative
+      if(socketPath.indexOf('/') !== 0) {
+        socketPath = './' + socketPath;
+      }
+      options.socketPath = socketPath;
       options.path = env.request.url;
     }
 
