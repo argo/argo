@@ -112,12 +112,10 @@ Argo.prototype.include = function(mod) {
   return this;
 };
 
-Argo.prototype.listen = function(port) {
-  var app = this.build();
-
-  this._http.createServer(app.run).listen(port);
-
-  return this;
+Argo.prototype.listen = function() {
+	var server = this._http.createServer(this.build().run);
+	server.listen.apply(server, arguments);
+	return this;
 };
 
 Argo.prototype.use = function(middleware) {
