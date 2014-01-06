@@ -114,6 +114,27 @@ describe('Argo', function() {
 
       argo(_http).listen(1234);
     });
+
+    it('can recieve more than just port as an argument', function(done) {
+      var Http = function(){};
+      Http.prototype.createServer = function() {
+        return this;
+      };
+
+      Http.prototype.listen = function(port, hostname, backlog, cb) {
+        assert.equal(port, 1234);
+        assert.equal(hostname, "127.0.0.1");
+        assert.equal(backlog, 511);
+        assert.equal(typeof cb, "function");
+        done();
+      };
+
+      var _http = new Http();
+      _http.IncomingMessage = Request;
+      _http.ServerResponse = Response;
+      _http.Agent = function() {};
+      argo(_http).listen(1234, "127.0.0.1", 511, function(){});
+    });
   });
 
   describe('#use', function() {
