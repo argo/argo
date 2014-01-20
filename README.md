@@ -104,12 +104,31 @@ $ npm install argo
 * [use(package)](#usepackage)
 * [target](#target)
 * [route](#route)
-* [get](#get)
-* [post](#post)
-* [put](#put)
-* [del](#del)
-* [options](#options)
-* [trace](#trace)
+* Method filters
+  * [get](#get)
+  * [post](#post)
+  * [put](#put)
+  * [head](#head)
+  * [del](#del)
+  * [options](#options)
+  * [trace](#trace)
+  * [copy](#copy)
+  * [lock](#lock)
+  * [mkcol](#mkcol)
+  * [move](#move)
+  * [propfind](#propfind)
+  * [proppatch](#proppatch)
+  * [unlock](#unlock)
+  * [report](#report)
+  * [mkactivity](#mkactivity)
+  * [checkout](#checkout)
+  * [merge](#merge)
+  * [msearch](#msearch)
+  * [notify](#notify)
+  * [subscribe](#subscribe)
+  * [unsubscribe](#unsubscribe)
+  * [patch](#patch)
+  * [search](#search)
 * [map](#map)
 * [include](#include)
 * [listen](#listen)
@@ -185,20 +204,59 @@ argo()
     });
   })
 ```
+
+### Method filters
 <a name="get"/>
 <a name="post"/>
 <a name="put"/>
+<a name="head"/>
 <a name="del"/>
 <a name="options"/>
 <a name="trace"/>
-### get(path, handleFunction)
-### post(path, handleFunction)
-### put(path, handleFunction)
-### del(path, handleFunction)
-### options(path, handleFunction)
-### trace(path, handleFunction)
+<a name="copy"/>
+<a name="lock"/>
+<a name="mkcol"/>
+<a name="move"/>
+<a name="propfind"/>
+<a name="proppatch"/>
+<a name="unlock"/>
+<a name="report"/>
+<a name="mkactivity"/>
+<a name="checkout"/>
+<a name="merge"/>
+<a name="msearch"/>
+<a name="notify"/>
+<a name="subscribe"/>
+<a name="unsubscribe"/>
+<a name="patch"/>
+<a name="search"/>
+#### get(path, handleFunction)
+#### post(path, handleFunction)
+#### put(path, handleFunction)
+#### head(path, handleFunction)
+#### del(path, handleFunction)
+#### options(path, handleFunction)
+#### trace(path, handleFunction)
+#### copy(path, handleFunction)
+#### lock(path, handleFunction)
+#### mkcol(path, handleFunction)
+#### move(path, handleFunction)
+#### propfind(path, handleFunction)
+#### proppatch(path, handleFunction)
+#### unlock(path, handleFunction)
+#### report(path, handleFunction)
+#### mkactivity(path, handleFunction)
+#### checkout(path, handleFunction)
+#### merge(path, handleFunction)
+#### msearch(path, handleFunction)
+#### notify(path, handleFunction)
+#### subscribe(path, handleFunction)
+#### unsubscribe(path, handleFunction)
+#### patch(path, handleFunction)
+#### search(path, handleFunction)
 
-Method filters built on top of `route`.
+Method filters built on top of `route`. `del` and `msearch` correspond to
+the DELETE and M-SEARCH methods, respectively.
 
 Example:
 
@@ -211,6 +269,7 @@ argo()
     });
   })
 ```
+
 <a name="map"/>
 ### map(path, [options], argoSegmentFunction)
 
