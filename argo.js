@@ -129,7 +129,18 @@ Argo.prototype.use = function(middleware) {
 Argo.prototype.target = function(url) {
   return this.use(function(handler) {
     handler('request', function(env, next) {
-      env.target.url = url + (env.request.url || '');
+      //Handle if there is a trailing slash in proxy target
+      if(url.slice(-1) === '/') {
+        url = url.slice(0, url.length - 1);
+      }
+      
+      var fullTarget = null;
+      if(env.argo.currentUrl) {
+        fullTarget = url + env.argo.currentUrl;
+      } else {
+        fullTarget = url + (env.request.url || '');
+      }
+      env.target.url = fullTarget
       next(env);
     });
   });

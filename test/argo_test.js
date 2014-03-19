@@ -557,6 +557,44 @@ describe('Argo', function() {
           .call(env);
       });
 
+      it('properly builds a targeted url within map', function(done) {
+        var env = _getEnv();
+        env.request.url = '/map/proxy1';
+        env.request.method = 'GET';
+
+        argo()
+          .map('^/map', function(server) {
+            server
+              .use(function(handle) {
+                handle('response', function(env, next) {
+                  assert.equal(env.target.url, 'http://api.example.com/proxy1');
+                  done();
+                });
+              })
+              .target('http://api.example.com/');
+            })
+            .call(env);
+      });
+
+      it('properly builds a targeted url within map without extra params', function(done) {
+        var env = _getEnv();
+        env.request.url = '/map';
+        env.request.method = 'GET';
+
+        argo()
+          .map('^/map', function(server) {
+            server
+              .use(function(handle) {
+                handle('response', function(env, next) {
+                  assert.equal(env.target.url, 'http://api.example.com/');
+                  done();
+                });
+              })
+              .target('http://api.example.com/');
+            })
+            .call(env);
+      });
+
       it('executes the route without a trailing slash with multiple maps', function(done) {
         var env = _getEnv();
         env.request.url = '/map/map2/sub';
