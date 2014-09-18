@@ -900,123 +900,52 @@ describe('Argo', function() {
     });
   });
 
-  describe('#get', function() {
-    it('responds to a GET request', function(done) {
-      var env = _getEnv();
-      env.request.method = 'GET';
-      env.request.url = '/sheep';
+  // Note: DELETE and M-SEARCH are renamed
+  var methods = {
+    'get': 'GET',
+    'post': 'POST',
+    'put': 'PUT',
+    'head': 'HEAD',
+    'del': 'DELETE',
+    'options': 'OPTIONS',
+    'trace': 'TRACE',
+    'copy': 'COPY',
+    'lock': 'LOCK',
+    'mkcol': 'MKCOL',
+    'move': 'MOVE',
+    'propfind': 'PROPFIND',
+    'proppatch': 'PROPPATCH',
+    'unlock': 'UNLOCK',
+    'report': 'REPORT',
+    'mkactivity': 'MKACTIVITY',
+    'checkout': 'CHECKOUT',
+    'merge': 'MERGE',
+    'msearch': 'M-SEARCH',
+    'notify': 'NOTIFY',
+    'subscribe': 'SUBSCRIBE',
+    'unsubscribe': 'UNSUBSCRIBE',
+    'patch': 'PATCH',
+    'search': 'SEARCH'
+  };
 
-      argo()
-        .get('^/sheep$', function(handle) {
-          handle('request', function(env, next) {
-            assert.equal(env.request.method, 'GET');
-            done();
-          });
-        })
-        .call(env);
-    });
-  });
+  Object.keys(methods).forEach(function(methodProp) {
+    var httpMethod = methods[methodProp];
 
-  describe('#post', function() {
-    it('responds to a POST request', function(done) {
-      var env = _getEnv();
-      env.request.method = 'POST';
-      env.request.url = '/sheep';
+    describe('#' + methodProp, function() {
+      it('responds to a ' + httpMethod + ' request', function(done) {
+        var env = _getEnv();
+        env.request.method = httpMethod;
+        env.request.url = '/sheep';
 
-      argo()
-        .post('^/sheep$', function(handle) {
-          handle('request', function(env, next) {
-            assert.equal(env.request.method, 'POST');
-            done();
-          });
-        })
-        .call(env);
-    });
-  });
-
-  describe('#put', function() {
-    it('responds to a PUT request', function(done) {
-      var env = _getEnv();
-      env.request.method = 'PUT';
-      env.request.url = '/sheep';
-
-      argo()
-        .put('^/sheep$', function(handle) {
-          handle('request', function(env, next) {
-            assert.equal(env.request.method, 'PUT');
-            done();
-          });
-        })
-        .call(env);
-    });
-  });
-
-  describe('#del', function() {
-    it('responds to a DELETE request', function(done) {
-      var env = _getEnv();
-      env.request.method = 'DELETE';
-      env.request.url = '/sheep';
-
-      argo()
-        .del('^/sheep$', function(handle) {
-          handle('request', function(env, next) {
-            assert.equal(env.request.method, 'DELETE');
-            done();
-          });
-        })
-        .call(env);
-    });
-  });
-  
-  describe('#head', function() {
-    it('responds to a HEAD request', function(done) {
-      var env = _getEnv();
-      env.request.method = 'HEAD';
-      env.request.url = '/sheep';
-
-      argo()
-        .head('^/sheep$', function(handle) {
-          handle('request', function(env, next) {
-            assert.equal(env.request.method, 'HEAD');
-            done();
-          });
-        })
-        .call(env);
-    });
-  });
-
-  describe('#options', function() {
-    it('responds to a OPTIONS request', function(done) {
-      var env = _getEnv();
-      env.request.method = 'OPTIONS';
-      env.request.url = '/sheep';
-
-      argo()
-        .options('^/sheep$', function(handle) {
-          handle('request', function(env, next) {
-            assert.equal(env.request.method, 'OPTIONS');
-            done();
-          });
-        })
-        .call(env);
-    });
-  });
-
-
-  describe('#trace', function() {
-    it('responds to a TRACE request', function(done) {
-      var env = _getEnv();
-      env.request.method = 'TRACE';
-      env.request.url = '/sheep';
-
-      argo()
-        .trace('^/sheep$', function(handle) {
-          handle('request', function(env, next) {
-            assert.equal(env.request.method, 'TRACE');
-            done();
-          });
-        })
-        .call(env);
+        argo()
+          [methodProp]('^/sheep$', function(handle) {
+            handle('request', function(env, next) {
+              assert.equal(env.request.method, httpMethod);
+              done();
+            });
+          })
+          .call(env);
+      });
     });
   });
 

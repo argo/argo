@@ -4,6 +4,7 @@ var url = require('url');
 var Stream = require('stream');
 var path = require('path');
 var pipeworks = require('pipeworks');
+var nodemethods = require('methods');
 var environment = require('./environment');
 var Frame = require('./frame');
 var Builder = require('./builder');
@@ -313,15 +314,16 @@ Argo.prototype._routeMap = function(path, options, handleFn) {
   return this;
 };
 
-var methods = {
-  'get': 'GET',
-  'post': 'POST',
-  'put': 'PUT',
-  'del': 'DELETE',
-  'head': 'HEAD',
-  'options': 'OPTIONS',
-  'trace': 'TRACE'
-};
+var methods = {};
+nodemethods.forEach(function(method) {
+  if (method === 'delete') {
+    methods['del'] = 'DELETE';
+  } else if (method === 'm-search') {
+    methods['msearch'] = 'M-SEARCH';
+  } else {
+    methods[method] = method.toUpperCase();
+  }
+});
 
 Object.keys(methods).forEach(function(method) {
   Argo.prototype[method] = function(path, options, handlers) {
