@@ -29,13 +29,13 @@ var Argo = function(_http) {
   var incoming = this._http.IncomingMessage.prototype;
 
   if (!incoming._argoModified) {
-    var _addHeaderLine = incoming._addHeaderLine;
+    var _addHeaderLines = incoming._addHeaderLines;
 
-    incoming._addHeaderLine = function(field, value) {
+    incoming._addHeaderLines = function(field, value) {
       this._rawHeaderNames = this._rawHeaderNames || {};
       this._rawHeaderNames[field.toLowerCase()] = field;
 
-      _addHeaderLine.call(this, field, value, incoming);
+      _addHeaderLines.call(this, field, value, incoming);
     };
 
     incoming.body = null;
