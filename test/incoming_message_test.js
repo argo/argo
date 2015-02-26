@@ -8,8 +8,10 @@ describe('IncomingMessage', function() {
       argo();
 
       var incomingMessage = new http.IncomingMessage();
-      incomingMessage._addHeaderLine('Super-Duper', 'funtime');
+      var dest = {};
+      incomingMessage._addHeaderLine('Super-Duper', 'funtime', dest);
       assert.equal(incomingMessage._rawHeaderNames['super-duper'], 'Super-Duper');
+      assert.equal(dest['super-duper'], 'funtime');
     });
   });
 });
