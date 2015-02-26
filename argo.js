@@ -31,11 +31,11 @@ var Argo = function(_http) {
   if (!incoming._argoModified) {
     var _addHeaderLine = incoming._addHeaderLine;
 
-    incoming._addHeaderLine = function(field, value) {
+    incoming._addHeaderLine = function(field, value, dest) {
       this._rawHeaderNames = this._rawHeaderNames || {};
       this._rawHeaderNames[field.toLowerCase()] = field;
 
-      _addHeaderLine.call(this, field, value, incoming);
+      _addHeaderLine.call(this, field, value, dest);
     };
 
     incoming.body = null;
