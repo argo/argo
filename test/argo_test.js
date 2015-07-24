@@ -974,6 +974,7 @@ describe('Argo', function() {
       env.request.url = '/sheep';
       env.response.writeHead = function(status, headers) {
         assert.equal(status, 405);
+        assert.equal(headers['Allow'], 'GET');
         done();
       };
 
