@@ -968,12 +968,13 @@ describe('Argo', function() {
   });
 
   describe('method routing', function() {
-    it('returns a 405 Method Not Allowed on unsupported methods', function(done) {
+    it.only('returns a 405 Method Not Allowed on unsupported methods', function(done) {
       var env = _getEnv();
       env.request.method = 'POST';
       env.request.url = '/sheep';
       env.response.writeHead = function(status, headers) {
         assert.equal(status, 405);
+        assert.equal(headers['Allow'], 'GET');
         done();
       };
 

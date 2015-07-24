@@ -469,6 +469,9 @@ Argo.prototype._routeRequestHandler = function(router) {
       }
     } else if (routeResult.warning === 'MethodNotSupported') {
       env.response.statusCode = 405;
+      if(routeResult.methods) {
+        env.response.setHeader('Allow', routeResult.methods.join(', ').toUpperCase());
+      }
       return next(env);
     } else {
       env.argo._routed = false;

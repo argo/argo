@@ -21,6 +21,7 @@ describe('RegExpRouter', function() {
     router.add('^/hello$', { methods: ['PUT'] }, new Function() /* handleFn */);
     var result = router.find('/hello', 'GET');
     assert.equal(result.warning, 'MethodNotSupported');
+    assert.equal(result.methods[0], 'put');
   });
 
   it('matches all routes when an asterisk is used', function() {

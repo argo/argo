@@ -2,6 +2,7 @@ var RegExpRouterResult = function() {
   this.warning = null;
   this.params = null;
   this.handlerFn = null;
+  this.methods = null;
 };
 
 var RegExpRouter = module.exports = function() {
@@ -67,6 +68,7 @@ RegExpRouter.prototype.find = function(path, method) {
        !this._router[routerKey]['*'])) {
     var result = new RegExpRouterResult();
     result.warning = 'MethodNotSupported';
+    result.methods = Object.keys(this._router[routerKey]);
     return result;
   }
 
